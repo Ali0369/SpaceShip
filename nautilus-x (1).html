@@ -1,0 +1,3552 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>NAUTILUS-X — Muhammad Ali</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ============================================================
+   NAUTILUS-X — TOKEN SYSTEM
+   ============================================================ */
+    :root {
+      --void: #030307;
+      --panel: #090b11;
+      --panel-edge: #161b24;
+      --white: #e9edf3;
+      --muted: #7b8494;
+      --dim: #42485530;
+      --cyan: #00f0ff;
+      --green: #39ff14;
+      --cyan-dim: rgba(0, 240, 255, 0.18);
+      --green-dim: rgba(57, 255, 20, 0.16);
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --ease: cubic-bezier(.22, .9, .28, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      background: var(--void);
+      color: var(--white);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body.no-scroll {
+      overflow-y: hidden;
+      height: 100vh;
+    }
+
+    #scroll-spacer {
+      height: 220vh;
+      width: 1px;
+      pointer-events: none;
+    }
+
+    @media (max-width:720px) {
+      #scroll-spacer {
+        display: none;
+      }
+    }
+
+    /* mobile view is a normal scrolling page already */
+
+    #intro-cover {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      background: var(--void);
+      pointer-events: none;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    ::selection {
+      background: var(--cyan-dim);
+      color: var(--white);
+    }
+
+    :focus-visible {
+      outline: 1px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    /* ---------------- BOOT SCREEN ---------------- */
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: var(--void);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity .9s var(--ease);
+    }
+
+    #boot.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #boot-mark {
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: .35em;
+      font-size: clamp(28px, 5vw, 48px);
+      color: var(--white);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 1s ease, transform 1s ease;
+    }
+
+    #boot-mark.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #boot-log {
+      margin-top: 28px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--muted);
+      min-height: 150px;
+      width: min(420px, 80vw);
+      line-height: 1.9;
+    }
+
+    #boot-log .line {
+      opacity: 0;
+      transition: opacity .4s ease;
+    }
+
+    #boot-log .line.on {
+      opacity: 1;
+    }
+
+    #boot-log .ok {
+      color: var(--green);
+    }
+
+    #boot-skip {
+      position: absolute;
+      bottom: 36px;
+      right: 36px;
+      background: transparent;
+      border: 1px solid var(--panel-edge);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .12em;
+      padding: 9px 16px;
+      border-radius: 2px;
+      transition: border-color .3s, color .3s;
+    }
+
+    #boot-skip:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* ---------------- 3D LAYER ---------------- */
+    #scene-root {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    #scene-root canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* viewport framing — subtle cockpit edge vignette, drawn in DOM not 3D */
+    #viewport-frame {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      box-shadow: inset 0 0 160px 40px rgba(0, 0, 0, 0.75);
+    }
+
+    #viewport-frame::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(3, 3, 7, .65) 0%, rgba(3, 3, 7, 0) 12%, rgba(3, 3, 7, 0) 82%, rgba(3, 3, 7, .75) 100%);
+    }
+
+    #dim-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 6;
+      pointer-events: none;
+      background: var(--void);
+      opacity: 0;
+      transition: opacity .7s var(--ease);
+    }
+
+    #dim-layer.on {
+      opacity: .82;
+    }
+
+    /* ---------------- HUD ---------------- */
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 8;
+      pointer-events: none;
+      font-family: var(--font-mono);
+    }
+
+    #hud.hidden {
+      display: none;
+    }
+
+    .hud-corner {
+      position: absolute;
+      font-size: 10.5px;
+      letter-spacing: .14em;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .hud-corner b {
+      color: var(--white);
+      font-weight: 500;
+    }
+
+    .hud-corner .dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 6px;
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+
+    #hud-tl {
+      top: 26px;
+      left: 28px;
+    }
+
+    #hud-tr {
+      top: 26px;
+      right: 28px;
+      text-align: right;
+    }
+
+    #hud-progress {
+      bottom: 22px;
+      right: 28px;
+      text-align: right;
+    }
+
+    #hud-bc {
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      opacity: .6;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .35;
+      }
+    }
+
+    /* ---------------- IDENTITY HERO (center, DOM overlay before any panel opens) ---------------- */
+    #hero {
+      position: fixed;
+      inset: 0;
+      z-index: 7;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: opacity .5s ease;
+    }
+
+    #hero.faded {
+      opacity: 0;
+    }
+
+    #hero .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .3em;
+      color: var(--cyan);
+      margin-bottom: 18px;
+    }
+
+    #hero h1 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(36px, 7vw, 84px);
+      letter-spacing: .06em;
+      line-height: 1;
+    }
+
+    #hero .name {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: clamp(15px, 2vw, 20px);
+      color: var(--white);
+      margin-top: 18px;
+      letter-spacing: .08em;
+    }
+
+    #hero .role {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .15em;
+      margin-top: 6px;
+    }
+
+    #hero .statement {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 420px;
+      margin-top: 26px;
+      line-height: 1.6;
+    }
+
+    #hero .hint {
+      margin-top: 44px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .14em;
+      color: var(--muted);
+      opacity: .7;
+    }
+
+    /* ---------------- CONSOLE HOTSPOT LABELS (appear near meshes) ---------------- */
+    .hotspot-label {
+      position: fixed;
+      z-index: 9;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .18em;
+      color: var(--muted);
+      border: 1px solid var(--panel-edge);
+      padding: 6px 12px;
+      border-radius: 2px;
+      background: rgba(9, 11, 17, .55);
+      backdrop-filter: blur(3px);
+      pointer-events: none;
+      transition: color .25s, border-color .25s, opacity .25s;
+      opacity: 0;
+      white-space: nowrap;
+    }
+
+    .hotspot-label.visible {
+      opacity: 1;
+    }
+
+    .hotspot-label.active {
+      color: var(--cyan);
+      border-color: var(--cyan);
+    }
+
+    /* ---------------- 2D PANEL SYSTEM ---------------- */
+    #panels {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .panel {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .55s var(--ease);
+    }
+
+    .panel.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .panel-inner {
+      width: min(1040px, 92vw);
+      max-height: 86vh;
+      overflow-y: auto;
+      background: linear-gradient(180deg, rgba(9, 11, 17, .94), rgba(6, 7, 11, .97));
+      border: 1px solid var(--panel-edge);
+      border-radius: 4px;
+      padding: clamp(28px, 4vw, 56px);
+      transform: scale(.97) translateY(10px);
+      transition: transform .55s var(--ease);
+      position: relative;
+    }
+
+    .panel.open .panel-inner {
+      transform: scale(1) translateY(0);
+    }
+
+    .panel-inner::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .panel-inner::-webkit-scrollbar-thumb {
+      background: var(--panel-edge);
+      border-radius: 3px;
+    }
+
+    .panel-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--panel-edge);
+      background: transparent;
+      color: var(--muted);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .25s, color .25s;
+    }
+
+    .panel-close:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .28em;
+      color: var(--cyan);
+      margin-bottom: 10px;
+    }
+
+    .panel-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(24px, 3.6vw, 38px);
+      letter-spacing: .02em;
+      margin-bottom: 6px;
+    }
+
+    .panel-sub {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 34px;
+    }
+
+    /* Identity panel */
+    .identity-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 44px;
+    }
+
+    @media (max-width:720px) {
+      .identity-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .portrait {
+      aspect-ratio: 3/4;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+      background: linear-gradient(160deg, #0d1119, #050608);
+      border: 1px solid var(--panel-edge);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .portrait .glyph {
+      font-family: var(--font-display);
+      font-size: 46px;
+      font-weight: 700;
+      color: var(--panel-edge);
+    }
+
+    .portrait::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--cyan-dim);
+    }
+
+    .field {
+      margin-bottom: 22px;
+    }
+
+    .field-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .2em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .field-body {
+      font-size: 14.5px;
+      line-height: 1.75;
+      color: var(--white);
+      font-weight: 400;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .08em;
+      color: var(--white);
+      border: 1px solid var(--panel-edge);
+      padding: 6px 12px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .manifest-btn {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .16em;
+      color: var(--void);
+      background: var(--cyan);
+      border: none;
+      padding: 12px 20px;
+      border-radius: 2px;
+      transition: filter .2s;
+    }
+
+    .manifest-btn:hover {
+      filter: brightness(1.15);
+    }
+
+    .manifest-status {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+      margin-top: 10px;
+      min-height: 14px;
+    }
+
+    /* Mission Control / Projects */
+    .radar-wrap {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 44px;
+      align-items: flex-start;
+    }
+
+    @media (max-width:760px) {
+      .radar-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    #radar-svg {
+      width: 100%;
+      height: auto;
+    }
+
+    .radar-ring {
+      fill: none;
+      stroke: var(--panel-edge);
+      stroke-width: 1;
+    }
+
+    .radar-sweep {
+      transform-origin: 150px 150px;
+      animation: sweep 6s linear infinite;
+    }
+
+    @keyframes sweep {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .blip {
+      cursor: pointer;
+    }
+
+    .blip circle {
+      fill: var(--cyan);
+      transition: r .2s, fill .2s;
+    }
+
+    .blip:hover circle,
+    .blip.active circle {
+      fill: var(--green);
+      r: 6;
+    }
+
+    .blip text {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      fill: var(--muted);
+      letter-spacing: .1em;
+    }
+
+    .blip:hover text,
+    .blip.active text {
+      fill: var(--white);
+    }
+
+    .target-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .target-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 6px;
+      border-bottom: 1px solid var(--panel-edge);
+      cursor: pointer;
+      transition: padding-left .25s;
+    }
+
+    .target-row:hover {
+      padding-left: 14px;
+    }
+
+    .target-row .t-id {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--cyan);
+      letter-spacing: .14em;
+      width: 90px;
+    }
+
+    .target-row .t-name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 16px;
+      flex: 1;
+    }
+
+    .target-row .t-cat {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .1em;
+    }
+
+    /* Project case study */
+    .case-cover {
+      width: 100%;
+      aspect-ratio: 16/7;
+      border-radius: 3px;
+      margin-bottom: 34px;
+      background: linear-gradient(135deg, #0c1018, #050609);
+      border: 1px solid var(--panel-edge);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .case-cover img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .case-cover .core-mark {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .3em;
+      color: var(--panel-edge);
+    }
+
+    .case-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      margin-bottom: 30px;
+    }
+
+    .case-meta div {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      color: var(--muted);
+    }
+
+    .case-meta div b {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      color: var(--white);
+      font-weight: 500;
+      margin-top: 4px;
+      letter-spacing: 0;
+    }
+
+    .case-section {
+      margin-bottom: 28px;
+    }
+
+    .case-section h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .2em;
+      color: var(--cyan);
+      margin-bottom: 10px;
+    }
+
+    .case-section p {
+      font-size: 14.5px;
+      line-height: 1.75;
+      color: var(--white);
+      max-width: 70ch;
+    }
+
+    .back-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .1em;
+      margin-bottom: 22px;
+      display: inline-block;
+    }
+
+    .back-link:hover {
+      color: var(--cyan);
+    }
+
+    /* Neural core */
+    .node-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    .node {
+      border: 1px solid var(--panel-edge);
+      border-radius: 3px;
+      padding: 20px 16px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: .03em;
+      cursor: pointer;
+      transition: border-color .25s, background .25s;
+      background: rgba(255, 255, 255, .015);
+    }
+
+    .node:hover,
+    .node.active {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .node-detail {
+      margin-top: 30px;
+      border-top: 1px solid var(--panel-edge);
+      padding-top: 26px;
+      display: none;
+    }
+
+    .node-detail.show {
+      display: block;
+    }
+
+    .tech-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--panel-edge);
+      font-size: 13.5px;
+    }
+
+    .tech-row span:first-child {
+      font-family: var(--font-mono);
+      letter-spacing: .06em;
+    }
+
+    .tech-row span:last-child {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Experiments */
+    .exp-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+
+    .exp-tab {
+      border: 1px solid var(--panel-edge);
+      padding: 9px 16px;
+      border-radius: 2px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .12em;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .exp-tab.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .exp-stage {
+      min-height: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: 1px dashed var(--panel-edge);
+      border-radius: 3px;
+      padding: 40px 20px;
+    }
+
+    .type-word {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(32px, 6vw, 64px);
+      letter-spacing: .02em;
+      display: inline-flex;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .type-word span {
+      display: inline-block;
+      transition: transform .4s var(--ease), opacity .4s ease, color .3s;
+    }
+
+    .exp-note {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 20px;
+      letter-spacing: .05em;
+    }
+
+    /* Journey / Flight log */
+    .log-row {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--panel-edge);
+    }
+
+    .log-row .yr {
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      font-size: 13px;
+      letter-spacing: .06em;
+    }
+
+    .log-row h4 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .log-row .role {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+
+    .log-row p {
+      font-size: 13.5px;
+      color: var(--white);
+      line-height: 1.65;
+      max-width: 60ch;
+    }
+
+    /* Current mission */
+    .mission-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .mission-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--panel-edge);
+    }
+
+    .mission-item .ind {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2.6s ease-in-out infinite;
+    }
+
+    .mission-item span {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 15px;
+      letter-spacing: .02em;
+    }
+
+    /* Contact */
+    .contact-head {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(28px, 4.5vw, 44px);
+      margin-bottom: 34px;
+    }
+
+    .link-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 4px;
+      border-bottom: 1px solid var(--panel-edge);
+      text-decoration: none;
+      color: var(--white);
+      transition: padding-left .25s, color .25s;
+    }
+
+    .link-row:hover {
+      padding-left: 12px;
+      color: var(--cyan);
+    }
+
+    .link-row .l-label {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .16em;
+      color: var(--muted);
+    }
+
+    .link-row .l-val {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .channel-cta {
+      margin-top: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: .14em;
+      color: var(--void);
+      background: var(--green);
+      border: none;
+      padding: 14px 24px;
+      border-radius: 2px;
+    }
+
+    .channel-cta:hover {
+      filter: brightness(1.12);
+    }
+
+    .transmit-block form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 420px;
+    }
+
+    .transmit-block input,
+    .transmit-block textarea {
+      background: rgba(255, 255, 255, .02);
+      border: 1px solid var(--panel-edge);
+      border-radius: 2px;
+      padding: 12px 14px;
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      outline: none;
+      resize: vertical;
+      transition: border-color .2s;
+    }
+
+    .transmit-block input:focus,
+    .transmit-block textarea:focus {
+      border-color: var(--cyan);
+    }
+
+    .transmit-block input::placeholder,
+    .transmit-block textarea::placeholder {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .1em;
+      color: var(--muted);
+    }
+
+    .transmit-block button {
+      align-self: flex-start;
+      border: none;
+    }
+
+    .transmit-block button:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    #cf-status {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .08em;
+      color: var(--muted);
+      min-height: 14px;
+    }
+
+    #cf-status.ok {
+      color: var(--green);
+    }
+
+    #cf-status.err {
+      color: #ff6a6a;
+    }
+
+    /* ---------------- TERMINAL ---------------- */
+    #terminal-tab {
+      position: fixed;
+      bottom: 24px;
+      left: 28px;
+      z-index: 30;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .14em;
+      color: var(--muted);
+      border: 1px solid var(--panel-edge);
+      background: rgba(9, 11, 17, .6);
+      backdrop-filter: blur(4px);
+      padding: 10px 16px;
+      border-radius: 2px;
+      transition: border-color .2s, color .2s;
+    }
+
+    #terminal-tab:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    #terminal {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 31;
+      background: rgba(6, 7, 11, .97);
+      border-top: 1px solid var(--panel-edge);
+      transform: translateY(100%);
+      transition: transform .4s var(--ease);
+      backdrop-filter: blur(6px);
+    }
+
+    #terminal.open {
+      transform: translateY(0);
+    }
+
+    #term-log {
+      height: 180px;
+      overflow-y: auto;
+      padding: 16px 24px 0;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.9;
+      color: var(--muted);
+    }
+
+    #term-log .cmd {
+      color: var(--white);
+    }
+
+    #term-log .cmd::before {
+      content: '> ';
+      color: var(--cyan);
+    }
+
+    #term-log .resp {
+      color: var(--green);
+    }
+
+    #term-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 24px 18px;
+      border-top: 1px solid var(--panel-edge);
+    }
+
+    #term-input-row .prompt {
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      font-size: 13px;
+    }
+
+    #term-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    #term-close {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    /* ---------------- FALLBACK NAV ---------------- */
+    #nav {
+      position: fixed;
+      top: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      display: flex;
+      gap: 4px;
+      background: rgba(9, 11, 17, .55);
+      border: 1px solid var(--panel-edge);
+      border-radius: 20px;
+      padding: 5px;
+      backdrop-filter: blur(4px);
+    }
+
+    #nav button {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      padding: 8px 14px;
+      border-radius: 16px;
+      transition: background .2s, color .2s;
+    }
+
+    #nav button:hover,
+    #nav button.active {
+      background: var(--cyan-dim);
+      color: var(--cyan);
+    }
+
+    @media (max-width:720px) {
+      #nav {
+        display: none;
+      }
+    }
+
+    /* ---------------- MOBILE SIMPLIFIED MODE ---------------- */
+    #mobile-view {
+      display: none;
+    }
+
+    @media (max-width:720px) {
+      #scene-root {
+        opacity: .5;
+      }
+
+      #hud,
+      #viewport-frame {
+        display: none;
+      }
+
+      #mobile-view {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 15;
+        overflow-y: auto;
+        padding: 80px 22px 120px;
+      }
+
+      #mobile-view h1 {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 34px;
+        letter-spacing: .04em;
+      }
+
+      #mobile-view .m-eyebrow {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: .28em;
+        color: var(--cyan);
+        margin-bottom: 14px;
+      }
+
+      #mobile-view .m-role {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 10px;
+        letter-spacing: .1em;
+      }
+
+      #mobile-view .m-stmt {
+        font-size: 13.5px;
+        color: var(--muted);
+        margin-top: 20px;
+        line-height: 1.7;
+        max-width: 46ch;
+      }
+
+      .m-section {
+        margin-top: 56px;
+      }
+
+      .m-section .eyebrow {
+        margin-bottom: 14px;
+      }
+
+      .m-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid var(--panel-edge);
+        border-radius: 3px;
+        padding: 18px;
+        margin-bottom: 10px;
+        background: rgba(255, 255, 255, .015);
+      }
+
+      .m-card b {
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .m-card span {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--muted);
+      }
+
+      #panels .panel-inner {
+        width: 94vw;
+        padding: 22px;
+        max-height: 90vh;
+      }
+    }
+
+    /* Loading indicator for engine */
+    #engine-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      background: var(--void);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .2em;
+      color: var(--muted);
+    }
+
+    /* ---------------- STAR MAP (flyable spaceship section) ---------------- */
+    #enter-starmap {
+      margin-top: 26px;
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .18em;
+      color: var(--cyan);
+      background: transparent;
+      border: 1px solid var(--cyan-dim);
+      padding: 12px 22px;
+      border-radius: 2px;
+      transition: background .25s, border-color .25s;
+    }
+
+    #enter-starmap:hover {
+      background: var(--cyan-dim);
+      border-color: var(--cyan);
+    }
+
+    @media (max-width:720px) {
+      #enter-starmap {
+        display: none;
+      }
+    }
+
+    #starmap-hud {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+      display: none;
+      font-family: var(--font-mono);
+    }
+
+    #starmap-hud.active {
+      display: block;
+    }
+
+    #objectives-panel {
+      position: absolute;
+      top: 26px;
+      left: 28px;
+      width: 260px;
+      background: rgba(9, 11, 17, .72);
+      border: 1px solid var(--panel-edge);
+      border-radius: 3px;
+      backdrop-filter: blur(4px);
+      padding: 16px 18px;
+    }
+
+    #objectives-panel .ob-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      letter-spacing: .22em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--panel-edge);
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+
+    #objectives-panel .ob-head b {
+      color: var(--cyan);
+      font-weight: 500;
+    }
+
+    .ob-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      font-size: 11px;
+      letter-spacing: .08em;
+    }
+
+    .ob-row .ob-check {
+      width: 12px;
+      height: 12px;
+      border: 1px solid var(--muted);
+      border-radius: 2px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .ob-row.done .ob-check {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .ob-row.done .ob-check::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      background: var(--green);
+      border-radius: 1px;
+    }
+
+    .ob-row .ob-code {
+      color: var(--white);
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .ob-row.done .ob-code {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .ob-row .ob-label {
+      color: var(--muted);
+      font-size: 9.5px;
+      letter-spacing: .1em;
+    }
+
+    #exit-starmap {
+      position: absolute;
+      top: 26px;
+      right: 28px;
+      pointer-events: auto;
+      background: rgba(9, 11, 17, .72);
+      border: 1px solid var(--panel-edge);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: .14em;
+      padding: 10px 16px;
+      border-radius: 2px;
+      backdrop-filter: blur(4px);
+      transition: border-color .2s, color .2s;
+    }
+
+    #exit-starmap:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    #scan-prompt {
+      position: absolute;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      letter-spacing: .14em;
+      color: var(--green);
+      background: rgba(9, 11, 17, .75);
+      border: 1px solid var(--green-dim);
+      padding: 9px 18px;
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity .25s;
+      white-space: nowrap;
+    }
+
+    #scan-prompt.show {
+      opacity: 1;
+    }
+
+    #impact-flash {
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(255, 60, 40, .35) 100%);
+      opacity: 0;
+      transition: opacity .08s ease-out;
+    }
+
+    #impact-flash.hit {
+      opacity: 1;
+      transition: opacity .05s ease-out;
+    }
+
+    #control-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      background: rgba(9, 11, 17, .6);
+      border: 1px solid var(--panel-edge);
+      border-radius: 3px;
+      padding: 10px 20px;
+      backdrop-filter: blur(4px);
+      max-width: 92vw;
+    }
+
+    .key-hint {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+
+    .key-badge {
+      border: 1px solid var(--panel-edge);
+      border-radius: 3px;
+      padding: 3px 8px;
+      color: var(--white);
+      font-size: 9.5px;
+      letter-spacing: .06em;
+    }
+
+    #model-credit {
+      position: absolute;
+      bottom: 8px;
+      left: 28px;
+      font-size: 9px;
+      color: var(--muted);
+      opacity: .55;
+      letter-spacing: .05em;
+    }
+
+    @media (max-width:900px) {
+      #control-bar .key-hint:nth-child(n+5) {
+        display: none;
+      }
+    }
+
+    #stat-panel {
+      position: absolute;
+      top: 82px;
+      right: 28px;
+      width: 200px;
+      background: rgba(9, 11, 17, .72);
+      border: 1px solid var(--panel-edge);
+      border-radius: 3px;
+      backdrop-filter: blur(4px);
+      padding: 14px 18px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      letter-spacing: .16em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .stat-row b {
+      color: var(--white);
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+
+    .bar {
+      height: 3px;
+      background: var(--panel-edge);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .bar:last-child {
+      margin-bottom: 0;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--cyan);
+      width: 0%;
+      transition: width .15s linear;
+    }
+
+    #minimap {
+      position: absolute;
+      bottom: 110px;
+      right: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--panel-edge);
+      background: rgba(9, 11, 17, .4);
+    }
+
+    @media (max-width:900px) {
+      #minimap {
+        display: none;
+      }
+    }
+
+    #starmap-briefing {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(440px, 80vw);
+      text-align: center;
+      background: rgba(6, 7, 11, .88);
+      border: 1px solid var(--panel-edge);
+      border-radius: 4px;
+      padding: 32px 30px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .4s ease;
+    }
+
+    #starmap-briefing.show {
+      opacity: 1;
+    }
+
+    .brief-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .24em;
+      color: var(--cyan);
+      margin-bottom: 14px;
+    }
+
+    .brief-body {
+      font-size: 13.5px;
+      line-height: 1.7;
+      color: var(--white);
+    }
+
+    .brief-hint {
+      margin-top: 20px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============ BOOT ============ -->
+  <div id="boot">
+    <div id="boot-mark">NAUTILUS-X</div>
+    <div id="boot-log">
+      <div class="line" data-t="0">INITIALIZING...</div>
+      <div class="line" data-t="1">VESSEL SYSTEM CHECKING...</div>
+      <div class="line" data-t="2">NAVIGATION ........ <span class="ok">ONLINE</span></div>
+      <div class="line" data-t="3">COMPUTE ........... <span class="ok">ONLINE</span></div>
+      <div class="line" data-t="4">CREATIVE CORE ..... <span class="ok">ONLINE</span></div>
+      <div class="line" data-t="5">PORTFOLIO ......... <span class="ok">ONLINE</span></div>
+      <div class="line" data-t="6" style="color:var(--white); margin-top:10px;">SYSTEM READY</div>
+    </div>
+    <button id="boot-skip">SKIP INTRO →</button>
+  </div>
+  <div id="engine-loading">LOADING VESSEL SYSTEMS…</div>
+
+  <!-- ============ 3D ============ -->
+  <div id="scene-root"></div>
+  <div id="intro-cover"></div>
+  <div id="scroll-spacer"></div>
+  <div id="viewport-frame"></div>
+  <div id="dim-layer"></div>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div class="hud-corner" id="hud-tl"><span class="dot"></span><b>NAUTILUS-X</b><br>VESSEL STATUS · ONLINE</div>
+    <div class="hud-corner" id="hud-tr">CREATIVE SYSTEM<br><b>ACTIVE</b></div>
+    <div class="hud-corner" id="hud-progress">MISSION LOG<br><b id="hud-progress-count">0/6 SIGNALS FOUND</b></div>
+    <div class="hud-corner" id="hud-bc">COMMAND DECK</div>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <div id="hero">
+    <div class="eyebrow">NAUTILUS-X</div>
+    <h1>MUHAMMAD ALI</h1>
+    <div class="name">CREATIVE DEVELOPER</div>
+    <div class="role">AI / ML · SOFTWARE · AUTOMATION</div>
+    <div class="statement">I BUILD INTELLIGENT SYSTEMS AND DIGITAL EXPERIENCES.</div>
+    <div class="hint">SCROLL TO ENTER THE COCKPIT</div>
+    <button id="enter-starmap">ENTER STAR MAP → FLY TO A PROJECT</button>
+  </div>
+
+  <!-- ============ FALLBACK NAV ============ -->
+  <nav id="nav">
+    <button data-open="identity">ABOUT</button>
+    <button data-open="projects">WORK</button>
+    <button data-open="neural">SYSTEMS</button>
+    <button data-open="education">EDUCATION</button>
+    <button data-open="experiments">EXPERIMENTS</button>
+    <button data-open="contact">CONTACT</button>
+    <button id="nav-starmap">STAR MAP</button>
+  </nav>
+
+  <!-- ============ STAR MAP HUD ============ -->
+  <div id="impact-flash"></div>
+  <div id="starmap-hud">
+    <div id="objectives-panel">
+      <div class="ob-head">OBJECTIVES <b id="ob-count">0/6</b></div>
+      <div id="ob-list"></div>
+    </div>
+    <button id="exit-starmap">✕ RETURN TO COCKPIT</button>
+    <div id="stat-panel">
+      <div class="stat-row"><span>VELOCITY</span><b id="speed-val">0</b></div>
+      <div class="bar">
+        <div class="bar-fill" id="speed-fill"></div>
+      </div>
+      <div class="stat-row"><span>HULL</span><b id="hull-val">100%</b></div>
+      <div class="bar">
+        <div class="bar-fill" id="hull-fill" style="background:var(--green)"></div>
+      </div>
+    </div>
+    <canvas id="minimap" width="128" height="128"></canvas>
+    <div id="scan-prompt">IN RANGE · PRESS E TO SCAN</div>
+    <div id="control-bar">
+      <div class="key-hint"><span class="key-badge">DRAG</span>rotate</div>
+      <div class="key-hint"><span class="key-badge">↑↓</span>pitch</div>
+      <div class="key-hint"><span class="key-badge">SCROLL</span>zoom</div>
+      <div class="key-hint"><span class="key-badge">WASD</span>fly</div>
+      <div class="key-hint"><span class="key-badge">SHIFT</span>boost</div>
+      <div class="key-hint"><span class="key-badge">E</span>scan</div>
+      <div class="key-hint"><span class="key-badge">TAB</span>view</div>
+      <div class="key-hint"><span class="key-badge">R</span>reset</div>
+    </div>
+    <div id="model-credit">SHIP MODEL — LIZ REDDINGTON (CC BY 3.0, POLY.PIZZA) · RELIC — KHRONOS glTF SAMPLES</div>
+    <div id="starmap-briefing">
+      <div class="brief-title">NAVIGATION ONLINE</div>
+      <div class="brief-body">Six signals are transmitting nearby. Fly close to a marker and press <b>E</b> to scan it
+        and open the file. Watch for rock debris — collisions won't stop you, but they'll rattle the hull.</div>
+      <div class="brief-hint">PRESS ANY KEY TO BEGIN</div>
+    </div>
+  </div>
+
+  <!-- ============ PANELS ============ -->
+  <div id="panels">
+
+
+<!-- IDENTITY -->
+
+<div class="panel" data-panel="identity">
+  <div class="panel-inner">
+    <button class="panel-close" data-close>✕</button>
+
+```
+<div class="eyebrow">LEFT CONSOLE · IDENTITY</div>
+
+<div class="panel-title">Muhammad Ali</div>
+
+<div class="panel-sub">
+  AI/ML ENGINEER · SOFTWARE DEVELOPER · AUTOMATION BUILDER
+</div>
+
+<div class="identity-grid">
+  <div class="portrait">
+    <div class="glyph">MA</div>
+  </div>
+
+  <div>
+    <div class="field">
+      <div class="field-label">PROFILE</div>
+      <div class="field-body">
+        I build intelligent software systems that connect AI, machine
+        learning, automation, and modern application development. My work
+        focuses on turning complex problems into practical, reliable, and
+        thoughtfully engineered products.
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">FOCUS</div>
+      <div class="tag-row">
+        <span class="tag">AI / ML</span>
+        <span class="tag">SOFTWARE</span>
+        <span class="tag">AUTOMATION</span>
+        <span class="tag">AI AGENTS</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">CURRENTLY BUILDING</div>
+      <div class="field-body">
+        AI-powered applications, intelligent agents, and automation
+        workflows — while developing deeper expertise in machine learning
+        engineering and the systems required to take ML models from
+        development to production.
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">APPROACH</div>
+      <div class="field-body">
+        Understand the problem first. Design the system clearly. Build,
+        test, automate, and refine. I care about both the engineering
+        underneath a product and the experience people have when using it.
+      </div>
+    </div>
+
+    <button class="manifest-btn" id="manifest-btn">
+      OPEN MANIFEST ↓
+    </button>
+
+    <div class="manifest-status" id="manifest-status"></div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+
+    <!-- MISSION CONTROL / PROJECTS -->
+    <div class="panel" data-panel="projects">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <div class="eyebrow">CENTER CONSOLE · MISSION CONTROL</div>
+        <div class="panel-title">Project Control</div>
+        <div class="panel-sub">SELECT A TARGET TO OPEN ITS CASE FILE</div>
+        <div class="radar-wrap">
+          <svg id="radar-svg" viewBox="0 0 300 300">
+            <circle class="radar-ring" cx="150" cy="150" r="130" />
+            <circle class="radar-ring" cx="150" cy="150" r="85" />
+            <circle class="radar-ring" cx="150" cy="150" r="40" />
+            <g class="radar-sweep">
+              <line x1="150" y1="150" x2="150" y2="20" stroke="var(--cyan)" stroke-opacity="0.35" stroke-width="1.5" />
+            </g>
+            <g id="radar-blips"></g>
+          </svg>
+          <div class="target-list" id="target-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECT DETAIL -->
+    <div class="panel" data-panel="project-detail">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <a href="#" class="back-link" id="back-to-projects">← MISSION CONTROL</a>
+        <div id="project-detail-body"></div>
+      </div>
+    </div>
+
+    <!-- NEURAL CORE -->
+    <div class="panel" data-panel="neural">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <div class="eyebrow">RIGHT CONSOLE · NEURAL CORE</div>
+        <div class="panel-title">Technical Capability</div>
+        <div class="panel-sub">SELECT A NODE TO VIEW RELATED SYSTEMS</div>
+        <div class="node-grid" id="node-grid"></div>
+        <div class="node-detail" id="node-detail"></div>
+      </div>
+    </div>
+
+    <!-- EDUCATION -->
+    <div class="panel" data-panel="education">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <div class="eyebrow">ACADEMY · TRAINING RECORD</div>
+        <div class="panel-title">Education</div>
+        <div class="panel-sub">FORMAL TRAINING & CERTIFICATION</div>
+        <div id="education-list"></div>
+      </div>
+    </div>
+
+    <!-- EXPERIMENTS -->
+    <div class="panel" data-panel="experiments">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <div class="eyebrow">EXPERIMENT BAY</div>
+        <div class="panel-title">Interactive Typography</div>
+        <div class="panel-sub">HOVER EACH WORD — EACH RESPONDS DIFFERENTLY</div>
+        <div class="exp-tabs" id="exp-tabs"></div>
+        <div class="exp-stage" id="exp-stage"></div>
+        <div class="exp-note" id="exp-note">BUILD · assembles from scattered fragments</div>
+      </div>
+    </div>
+
+    <!-- JOURNEY -->
+    <div class="panel" data-panel="journey">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <div class="eyebrow">FLIGHT LOG</div>
+        <div class="panel-title">Journey</div>
+        <div class="panel-sub">CAREER & EXPERIENCE</div>
+        <div id="journey-list"></div>
+      </div>
+    </div>
+
+    <!-- MISSION (current focus) -->
+    <div class="panel" data-panel="mission">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <div class="eyebrow">CURRENT MISSION</div>
+        <div class="panel-title">Focus Areas</div>
+        <div class="panel-sub">WHAT I'M SPENDING MOST OF MY TIME ON RIGHT NOW</div>
+        <div class="mission-list" id="mission-list"></div>
+      </div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="panel" data-panel="contact">
+      <div class="panel-inner">
+        <button class="panel-close" data-close>✕</button>
+        <div class="eyebrow">COMMUNICATION CHANNEL</div>
+        <div class="contact-head">Let's build<br>something.</div>
+        <div class="link-list" id="link-list"></div>
+        <a class="channel-cta" id="open-channel" href="#">OPEN CHANNEL →</a>
+
+        <div class="transmit-block">
+          <div class="field-label" style="margin-top:36px; margin-bottom:14px;">OR SEND A MESSAGE DIRECTLY</div>
+          <form id="contact-form">
+            <input type="text" name="name" id="cf-name" placeholder="YOUR NAME" required>
+            <input type="email" name="email" id="cf-email" placeholder="YOUR EMAIL" required>
+            <textarea name="message" id="cf-message" placeholder="MESSAGE" rows="4" required></textarea>
+            <button type="submit" class="channel-cta" id="cf-submit">TRANSMIT MESSAGE →</button>
+            <div id="cf-status"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ CONSOLE HOTSPOT LABELS ============ -->
+  <div class="hotspot-label" id="label-left">IDENTITY</div>
+  <div class="hotspot-label" id="label-center">MISSION CONTROL</div>
+  <div class="hotspot-label" id="label-right">NEURAL CORE</div>
+  <div class="hotspot-label" id="label-terminal">COMMAND TERMINAL</div>
+
+  <!-- ============ TERMINAL ============ -->
+  <button id="terminal-tab">▸ COMMAND TERMINAL</button>
+  <div id="terminal">
+    <div id="term-log">
+      <div class="resp">NAUTILUS-X TERMINAL — type "help" for available commands.</div>
+    </div>
+    <div id="term-input-row">
+      <span class="prompt">&gt;</span>
+      <input id="term-input" type="text" autocomplete="off" placeholder="type a command…" />
+      <button id="term-close">✕</button>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE SIMPLIFIED VIEW ============ -->
+  <div id="mobile-view">
+    <div class="m-eyebrow">NAUTILUS-X</div>
+    <h1>MUHAMMAD ALI</h1>
+    <div class="m-role">CREATIVE DEVELOPER — AI/ML · SOFTWARE · AUTOMATION</div>
+    <div class="m-stmt">I build intelligent systems and digital experiences.</div>
+
+    <div class="m-section">
+      <div class="eyebrow">IDENTITY</div>
+      <div class="m-card" data-open="identity"><b>About</b><span>OPEN →</span></div>
+    </div>
+    <div class="m-section">
+      <div class="eyebrow">MISSION CONTROL</div>
+      <div class="m-card" data-open="projects"><b>Projects</b><span>OPEN →</span></div>
+    </div>
+    <div class="m-section">
+      <div class="eyebrow">NEURAL CORE</div>
+      <div class="m-card" data-open="neural"><b>Systems</b><span>OPEN →</span></div>
+    </div>
+    <div class="m-section">
+      <div class="eyebrow">ACADEMY</div>
+      <div class="m-card" data-open="education"><b>Education</b><span>OPEN →</span></div>
+    </div>
+    <div class="m-section">
+      <div class="eyebrow">EXPERIMENT BAY</div>
+      <div class="m-card" data-open="experiments"><b>Experiments</b><span>OPEN →</span></div>
+    </div>
+    <div class="m-section">
+      <div class="eyebrow">FLIGHT LOG</div>
+      <div class="m-card" data-open="journey"><b>Journey</b><span>OPEN →</span></div>
+    </div>
+    <div class="m-section">
+      <div class="eyebrow">CURRENT MISSION</div>
+      <div class="m-card" data-open="mission"><b>Focus</b><span>OPEN →</span></div>
+    </div>
+    <div class="m-section">
+      <div class="eyebrow">COMMUNICATION</div>
+      <div class="m-card" data-open="contact"><b>Contact</b><span>OPEN →</span></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script>
+    /* Real GLB assets used in this build:
+       - Player ship: "Spaceship" by Liz Reddington, CC-BY 3.0, via poly.pizza — https://poly.pizza/m/5nWeu4IQXVX
+       - Drifting relic: "DamagedHelmet" — Khronos glTF-Sample-Assets (public domain sample), via jsDelivr GitHub CDN
+       Both have a procedural fallback below in case a network blocks external asset loading. */
+    const SHIP_GLB_URL = "https://static.poly.pizza/bf472e51-fa18-4c19-a6c8-5a834e8483a8.glb";
+    const RELIC_GLB_URL = "https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets/Models/DamagedHelmet/glTF-Binary/DamagedHelmet.glb";
+
+    /* ================================================================
+       NAUTILUS-X — CONFIG
+       The projects/journey/education below are SAMPLE/DUMMY content
+       (placeholder case studies) so the site demos fully populated —
+       swap them for your real work whenever you're ready. Everything
+       else (name, contact) is left as a clear placeholder for you.
+       ================================================================ */
+    const CONFIG = {
+      name: "Muhammad Ali",
+      resumeUrl: "https://drive.google.com/file/d/1A20t1j-i2UotQXEMlS3_R4t97UAgEIpT/view?usp=drive_link", // add a real link to enable "OPEN MANIFEST"
+      contact: {
+        email: "alisumair2006@gmail.com",
+        github: "https://github.com/Ali0369",
+        linkedin: "https://www.linkedin.com/in/muhammad-ali-508378259/"
+      },
+      projects: [
+        {
+          id: "01", name: "Aperture — Visual Search Engine", category: "AI / ML", year: "2025", role: "Lead Developer", tech: ["Python", "PyTorch", "CLIP", "FastAPI", "Pinecone"],
+          description: "A sample project (dummy content — replace via CONFIG): an image-similarity search tool that lets users find visually related products from a single photo instead of typing keywords.",
+          challenge: "Sample: text search misses products that look right but are described differently — 'find me something like this' has no good keyword equivalent.",
+          approach: "Sample: fine-tuned a CLIP-based embedding model, indexed a product catalog into a vector database, and built a similarity search API around it.",
+          build: "Sample: a FastAPI backend serving embeddings + nearest-neighbor search, with a lightweight React front end for drag-and-drop image search.",
+          result: "Sample placeholder — replace with a real, verifiable outcome once this becomes an actual project.",
+          live: "", repo: "", image: "../Images/pic2.jpg"
+        },
+        {
+          id: "02", name: "Pathfinder — Workflow Automation Suite", category: "AUTOMATION", year: "2025", role: "Full-Stack Developer", tech: ["Node.js", "TypeScript", "Temporal", "PostgreSQL", "Docker"],
+          description: "A sample project (dummy content — replace via CONFIG): a visual workflow builder for chaining internal API calls and scheduled jobs without writing glue code.",
+          challenge: "Sample: recurring ops tasks were scattered across cron jobs and one-off scripts with no shared visibility or retry logic.",
+          approach: "Sample: modeled each workflow as a durable, resumable graph of steps using an orchestration engine, with a drag-and-drop editor on top.",
+          build: "Sample: a Node.js service layer over a workflow engine, Postgres for state, and a canvas-based editor for building pipelines visually.",
+          result: "Sample placeholder — replace with a real, verifiable outcome once this becomes an actual project.",
+          live: "", repo: "", image: "../Images/pic7.webp"
+        },
+        {
+          id: "03", name: "Northlight — Realtime Analytics Dashboard", category: "SOFTWARE", year: "2024", role: "Frontend Engineer", tech: ["React", "WebSockets", "D3.js", "Redis", "Express"],
+          description: "A sample project (dummy content — replace via CONFIG): a live operations dashboard streaming metrics to hundreds of concurrent viewers with sub-second latency.",
+          challenge: "Sample: the existing dashboard polled every 10 seconds and buckled under concurrent viewers during traffic spikes.",
+          approach: "Sample: moved to a WebSocket-based push model with Redis pub/sub fan-out, and rebuilt the chart layer for incremental updates instead of full re-renders.",
+          build: "Sample: a React front end with custom D3 chart primitives, an Express + Redis pub/sub backend, and a connection-pooling layer for scale.",
+          result: "Sample placeholder — replace with a real, verifiable outcome once this becomes an actual project.",
+          live: "", repo: "", image: "../Images/pic10.jpg"
+        },
+        {
+          id: "04", name: "BMS — Business Inventory Management System", category: "SOFTWARE", year: "2025",
+          role: "Full-Stack Developer", tech: ["C#", "ASP.NET Core", "React", "PostgreSQL", "Supabase", "Docker"],
+          description: "A business inventory management system designed to manage products, stock levels, barcode-based operations, and inventory records through a connected desktop and web application.",
+          challenge: "Inventory records were difficult to manage across separate systems, making it harder to track stock, update product information, and maintain consistent data between different parts of the business.",
+          approach: "Designed a centralized inventory system with a PostgreSQL database, an ASP.NET Core Web API backend, and a React frontend. The system was structured to support barcode-based product identification, inventory management, and reliable communication between the user interface and backend services.",
+          build: "Built the backend using C# and ASP.NET Core Web API with Npgsql for PostgreSQL connectivity. Developed the frontend using React, Vite, and Axios, connected the database through Supabase, and used Docker to support the development and deployment environment.",
+          result: "A working full-stack inventory management application with a connected database, product and stock management features, barcode support, and a modern web interface. The project strengthened my experience in API development, database integration, frontend development, and deploying connected software systems.",
+          live: "https://business-management-system-khaki.vercel.app/", repo: "", image: "../Images/pic11.png"
+        }
+
+      ],
+      nodes: {
+        "AI / ML": ["Python", "Machine Learning", "Computer Vision", "LLM Integration", "Data Pipelines"],
+        "SOFTWARE": ["TypeScript", "React", "Node.js", "API Design"],
+        "WEB": ["Three.js", "WebGL", "Interaction Design"],
+        "AUTOMATION": ["Workflow Systems", "Scripting", "Process Design"],
+        "SYSTEMS": ["Architecture", "Distributed Systems"],
+        "CLOUD": ["AWS", "CI/CD", "Infrastructure"]
+      },
+      journey: [
+
+        {
+          year: "2026",
+          role: "AI / Machine Learning Intern",
+          project: "FlyRank ML Internship",
+          detail: "Building practical machine learning projects, automation workflows, and AI-powered solutions while developing skills in model development, evaluation, and deployment."
+        },
+
+        {
+          year: "2025",
+          role: "Full-Stack Developer",
+          project: "Business Inventory Management System",
+          detail: "Built a full-stack inventory management system using React, ASP.NET Core, and PostgreSQL, including product management, stock tracking, barcode support, and database integration."
+        },
+
+        {
+          year: "2024",
+          role: "Software Developer",
+          project: "Tailor Management System",
+          detail: "Developed a desktop management application using C# WinForms and SQLite with customer, order, employee, design catalog, and authentication features."
+        }
+
+      ],
+      education: [
+
+        {
+          year: "Present",
+          degree: "BS Software Engineering",
+          school: "Bahria University",
+          detail: "Studying Software Engineering with a focus on programming, software development, databases, artificial intelligence, and machine learning."
+        },
+
+        {
+          year: "2024",
+          degree: "Higher Secondary Education — Computer Science",
+          school: "Government Dehli College",
+          detail: "Completed higher secondary education in computer science, developing a foundation in programming, mathematics, and computer-related subjects."
+        },
+
+        {
+          year: "2022",
+          degree: "Secondary School Education",
+          school: "KPS",
+          detail: "Completed secondary education and developed an early interest in computer science, technology, and software development."
+        }
+      ],
+
+      focus: ["AI / ML", "AUTOMATION", "SOFTWARE", "CREATIVE DEVELOPMENT", "INTELLIGENT SYSTEMS"]
+    };
+
+    /* ================================================================
+       BOOT SEQUENCE
+       ================================================================ */
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = window.matchMedia('(max-width:720px)').matches;
+
+    function runBoot() {
+      const boot = document.getElementById('boot');
+      const mark = document.getElementById('boot-mark');
+      const lines = document.querySelectorAll('#boot-log .line');
+      mark.classList.add('show');
+      const step = reduceMotion ? 60 : 260;
+      lines.forEach((l, i) => setTimeout(() => l.classList.add('on'), 400 + i * step));
+      const total = 400 + lines.length * step + 500;
+      setTimeout(finishBoot, reduceMotion ? 300 : total);
+    }
+    function finishBoot() {
+      const boot = document.getElementById('boot');
+      boot.classList.add('hide');
+      document.getElementById('hud').classList.remove('hidden');
+      setTimeout(() => boot.style.display = 'none', 900);
+    }
+    document.getElementById('boot-skip').addEventListener('click', finishBoot);
+    window.addEventListener('load', () => setTimeout(runBoot, 200));
+
+    /* ================================================================
+       THREE.JS COCKPIT ENVIRONMENT
+       ================================================================ */
+    let scene, camera, renderer, core, starField, hoverables = [], raycaster, mouse;
+    let camTargetPos = new THREE.Vector3(0, 1.55, 4.2);
+    let camTargetLook = new THREE.Vector3(0, 1.4, 0);
+    let camBasePos = camTargetPos.clone();
+    let camBaseLook = camTargetLook.clone();
+    const introDollyFar = new THREE.Vector3(0, 2.6, 12); // starting point for the scroll-in camera dolly
+    let mouseLookX = 0, mouseLookY = 0;
+    let consoleMeshes = {};
+    let cockpitGroup, starmapGroup;
+    let mode = 'cockpit'; // 'cockpit' | 'starmap'
+
+    function initScene() {
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x030307, 0.045);
+
+      camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera.position.copy(camBasePos);
+      camera.lookAt(camBaseLook);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x030307);
+      document.getElementById('scene-root').appendChild(renderer.domElement);
+
+      // lighting
+      scene.add(new THREE.AmbientLight(0x1a1f2b, 1.4));
+      const cyanLight = new THREE.PointLight(0x00f0ff, 2.2, 12);
+      cyanLight.position.set(-1.4, 1.8, 1.2);
+      scene.add(cyanLight);
+      const greenLight = new THREE.PointLight(0x39ff14, 1.4, 12);
+      greenLight.position.set(1.6, 1.4, 1.0);
+      scene.add(greenLight);
+      const rim = new THREE.DirectionalLight(0x445566, 0.6);
+      rim.position.set(0, 5, -5);
+      scene.add(rim);
+
+      cockpitGroup = new THREE.Group(); scene.add(cockpitGroup);
+      starmapGroup = new THREE.Group(); starmapGroup.visible = false; scene.add(starmapGroup);
+
+      buildStarfield();
+      buildNebula();
+      buildCockpit();
+      buildCore();
+      buildParticles();
+      buildStarmap();
+
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2(-10, -10);
+
+      document.getElementById('engine-loading').style.display = 'none';
+    }
+
+    function buildStarfield() {
+      const count = isMobile ? 900 : 2600;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const r = 40 + Math.random() * 60;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.6 + 4;
+        pos[i * 3 + 2] = -Math.abs(r * Math.cos(phi)) - 6;
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({ color: 0xdfe8f2, size: 0.06, transparent: true, opacity: 0.75 });
+      starField = new THREE.Points(geo, mat);
+      scene.add(starField);
+    }
+
+    function buildNebula() {
+      const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+      g.addColorStop(0, 'rgba(0,120,140,0.28)');
+      g.addColorStop(0.4, 'rgba(20,40,60,0.14)');
+      g.addColorStop(1, 'rgba(3,3,7,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+      const tex = new THREE.CanvasTexture(c);
+      const geo = new THREE.PlaneGeometry(60, 40);
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(-6, 6, -40);
+      scene.add(mesh);
+      const geo2 = geo.clone();
+      const mesh2 = new THREE.Mesh(geo2, mat.clone());
+      mesh2.material.opacity = 0.6;
+      mesh2.position.set(10, 2, -55);
+      mesh2.scale.set(1.4, 1.4, 1);
+      scene.add(mesh2);
+    }
+
+    function panelMaterial(color, emissiveIntensity) {
+      return new THREE.MeshStandardMaterial({
+        color: 0x0a0d12, metalness: 0.6, roughness: 0.5,
+        emissive: new THREE.Color(color), emissiveIntensity: emissiveIntensity
+      });
+    }
+
+    /* fake-bloom billboard: cheap, reliable "glow" without a postprocessing pipeline */
+    function makeGlowSprite(hexColor, worldSize, opacity) {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, hexColor + 'ff'); g.addColorStop(0.4, hexColor + '55'); g.addColorStop(1, hexColor + '00');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+      const tex = new THREE.CanvasTexture(c);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: opacity !== undefined ? opacity : 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(worldSize, worldSize, 1);
+      return sprite;
+    }
+
+    /* deformed low-poly rock — used for the asteroid field */
+    function makeAsteroidGeometry(radius) {
+      const geo = new THREE.IcosahedronGeometry(radius, 1);
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const n = 0.72 + Math.random() * 0.5;
+        pos.setXYZ(i, pos.getX(i) * n, pos.getY(i) * n, pos.getZ(i) * n);
+      }
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    /* procedural HUD-style screen surface — beats a flat color plane */
+    function makeScreenTexture(hexColor) {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 192;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#050709'; ctx.fillRect(0, 0, 256, 192);
+      ctx.strokeStyle = hexColor + '22'; ctx.lineWidth = 1;
+      for (let x = 0; x < 256; x += 16) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 192); ctx.stroke(); }
+      for (let y = 0; y < 192; y += 16) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke(); }
+      ctx.strokeStyle = hexColor + 'aa';
+      ctx.strokeRect(14, 14, 228, 60);
+      for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = hexColor + (i % 2 ? '88' : '33');
+        ctx.fillRect(14, 92 + i * 16, 40 + Math.random() * 160, 6);
+      }
+      ctx.fillStyle = hexColor;
+      for (let i = 0; i < 3; i++) { ctx.fillRect(190, 20 + i * 16, 10, 10); }
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    }
+
+    /* a single console assembly: bezel + inset screen + indicator lights + mount brackets.
+       Returns the raycastable "screen" mesh (what consoleMeshes[key] points to) while
+       everything else stays a passive child of the same group so it reads as one unit. */
+    function buildConsoleUnit(w, h, hexColor, hexInt) {
+      const group = new THREE.Group();
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x0d1017, metalness: 0.65, roughness: 0.45 });
+      const bezel = new THREE.Mesh(new THREE.BoxGeometry(w + 0.14, h + 0.14, 0.1), frameMat);
+      group.add(bezel);
+
+      const screenMat = new THREE.MeshStandardMaterial({
+        color: 0x050709, metalness: 0.3, roughness: 0.6,
+        emissive: new THREE.Color(hexColor), emissiveIntensity: hexInt,
+        emissiveMap: makeScreenTexture(hexColor), map: makeScreenTexture(hexColor)
+      });
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(w, h), screenMat);
+      screen.position.z = 0.06;
+      group.add(screen);
+      screen.add(makeGlowSprite(hexColor, Math.max(w, h) * 1.9, 0.4));
+
+      // corner brackets — small greeble detail
+      const bracketMat = new THREE.MeshStandardMaterial({ color: 0x1a2028, metalness: 0.8, roughness: 0.3 });
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), bracketMat);
+        b.position.set(sx * (w / 2 + 0.02), sy * (h / 2 + 0.02), 0.05);
+        group.add(b);
+      });
+
+      // indicator light strip along the bottom edge
+      const lightMat = new THREE.MeshStandardMaterial({ color: 0x050709, emissive: new THREE.Color(hexColor), emissiveIntensity: 1.2 });
+      for (let i = 0; i < 4; i++) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), lightMat.clone());
+        dot.position.set(-w / 2 + 0.08 + i * 0.09, -h / 2 - 0.09, 0.05);
+        dot.userData.blink = Math.random() > 0.4;
+        group.add(dot);
+      }
+      return { group, screen };
+    }
+
+    function buildCockpit() {
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x0a0c11, metalness: 0.55, roughness: 0.6 });
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x07080b, metalness: 0.4, roughness: 0.75 });
+      const shellMat = new THREE.MeshStandardMaterial({ color: 0x0c0f16, metalness: 0.6, roughness: 0.5 });
+
+      // floor
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(6, 0.15, 6), darkMat);
+      floor.position.set(0, -0.6, 0.5);
+      cockpitGroup.add(floor);
+
+      // enclosure walls — tapered side panels so the cockpit reads as an interior,
+      // not four objects floating over open starfield
+      [-1, 1].forEach(side => {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.6, 4.2), wallMat);
+        wall.position.set(side * 3.1, 1.0, -0.6);
+        wall.rotation.y = side * -0.22;
+        cockpitGroup.add(wall);
+        const sill = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 4.2), shellMat);
+        sill.position.set(side * 2.75, -0.35, -0.6);
+        sill.rotation.y = side * -0.22;
+        cockpitGroup.add(sill);
+      });
+
+      // overhead canopy frame — a few angled segments faking a curved arch,
+      // ties the whole cockpit silhouette together from above
+      const archMat = new THREE.MeshStandardMaterial({ color: 0x0d1017, metalness: 0.7, roughness: 0.35 });
+      const archSegs = 5;
+      for (let i = 0; i < archSegs; i++) {
+        const t = i / (archSegs - 1);
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.1), archMat);
+        const x = THREE.MathUtils.lerp(-2.6, 2.6, t);
+        const y = 2.55 - Math.pow((t - 0.5) * 2, 2) * 0.5;
+        seg.position.set(x, y, -0.9);
+        seg.rotation.z = (0.5 - t) * 0.7;
+        cockpitGroup.add(seg);
+      }
+
+      // unified dashboard base — one continuous shelf the three screens rise from,
+      // instead of three disconnected boxes
+      const baseCurve = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.5, 1.3), shellMat);
+      baseCurve.position.set(0, 0.35, -0.55);
+      cockpitGroup.add(baseCurve);
+      const bevel = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.06, 0.1), darkMat);
+      bevel.position.set(0, 0.62, 0.05);
+      cockpitGroup.add(bevel);
+
+      // bridging shoulder panels — physically connect center console to the side units
+      [-1, 1].forEach(side => {
+        const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.08), shellMat);
+        bridge.position.set(side * 1.55, 0.95, -0.7);
+        bridge.rotation.y = side * 0.75;
+        cockpitGroup.add(bridge);
+      });
+
+      // CENTER CONSOLE — mission control
+      const centerUnit = buildConsoleUnit(1.5, 0.85, '#00f0ff', 0.5);
+      centerUnit.group.position.set(0, 1.0, -0.95);
+      cockpitGroup.add(centerUnit.group);
+      consoleMeshes.projects = centerUnit.screen;
+
+      // LEFT CONSOLE — identity
+      const leftUnit = buildConsoleUnit(1.0, 1.2, '#00f0ff', 0.42);
+      leftUnit.group.position.set(-1.85, 1.05, -0.35);
+      leftUnit.group.rotation.y = 0.55;
+      cockpitGroup.add(leftUnit.group);
+      consoleMeshes.identity = leftUnit.screen;
+
+      // RIGHT CONSOLE — neural core
+      const rightUnit = buildConsoleUnit(1.0, 1.2, '#39ff14', 0.42);
+      rightUnit.group.position.set(1.85, 1.05, -0.35);
+      rightUnit.group.rotation.y = -0.55;
+      cockpitGroup.add(rightUnit.group);
+      consoleMeshes.neural = rightUnit.screen;
+
+      // LOWER TERMINAL — embedded ledge at the base of the dashboard, not floating separately
+      const termUnit = buildConsoleUnit(1.1, 0.42, '#39ff14', 0.45);
+      termUnit.group.position.set(0, 0.32, 0.32);
+      termUnit.group.rotation.x = -0.75;
+      cockpitGroup.add(termUnit.group);
+      consoleMeshes.terminal = termUnit.screen;
+
+      hoverables = [centerUnit.screen, leftUnit.screen, rightUnit.screen, termUnit.screen];
+
+      // wire the blink flag through so indicator lights animate in the render loop
+    }
+
+    function buildCore() {
+      core = new THREE.Group();
+      const outer = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.34, 1),
+        new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.55 })
+      );
+      const inner = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.18, 0),
+        new THREE.MeshStandardMaterial({ color: 0x061014, emissive: 0x39ff14, emissiveIntensity: 0.9, metalness: 0.4, roughness: 0.3 })
+      );
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.46, 0.006, 8, 64),
+        new THREE.MeshBasicMaterial({ color: 0x39ff14, transparent: true, opacity: 0.5 })
+      );
+      ring.rotation.x = Math.PI / 2.3;
+      core.add(outer, inner, ring);
+      core.add(makeGlowSprite('#39ff14', 2.2, 0.5));
+      core.position.set(0, 1.55, -1.35);
+      cockpitGroup.add(core);
+    }
+
+    function buildParticles() {
+      const count = isMobile ? 60 : 160;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        pos[i * 3] = (Math.random() - 0.5) * 5;
+        pos[i * 3 + 1] = Math.random() * 3;
+        pos[i * 3 + 2] = (Math.random() - 0.5) * 4 - 0.5;
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({ color: 0x9fd8e0, size: 0.012, transparent: true, opacity: 0.5 });
+      const pts = new THREE.Points(geo, mat);
+      scene.add(pts);
+      window.__dust = pts;
+    }
+
+    /* ================================================================
+       STAR MAP — flyable ship section
+       Objective codenames map to the same 2D panels used by the cockpit.
+       ================================================================ */
+    const OBJECTIVES = [
+      { code: 'GENESIS', label: 'ABOUT', panel: 'identity', angle: [0.3, 0.9], dist: 34 },
+      { code: 'SYNTHEX', label: 'SKILLS', panel: 'neural', angle: [2.1, 0.5], dist: 40 },
+      { code: 'ACADEMY', label: 'EDUCATION', panel: 'education', angle: [3.6, 1.3], dist: 30 },
+      { code: 'EXPEDITION', label: 'EXPERIENCE', panel: 'journey', angle: [4.8, 0.7], dist: 44 },
+      { code: 'CODEX', label: 'PROJECTS', panel: 'projects', angle: [1.1, 1.9], dist: 38 },
+      { code: 'NOVARA', label: 'CONTACT', panel: 'contact', angle: [5.6, 1.6], dist: 32 },
+    ];
+    let ship, shipVisual, sun, relic, markers = [];
+    let visited = new Set();
+    let shipState = { yaw: 0, pitch: 0, roll: 0, speed: 0 };
+    const shipSpawn = { pos: [0, 4, 62], yaw: 0, pitch: 0 };
+    const keys = {};
+    let dragging = false, lastX = 0, lastY = 0, dragDX = 0, dragDY = 0;
+    let camView = 'chase'; // 'chase' | 'nose'
+    let camDist = 9;
+    let flightPaused = false;
+    let nearMarker = null;
+    let asteroids = [];
+    let hull = 100;
+    let hitCooldown = 0;
+    let shakeTime = 0;
+    let trailParticles = [], trailCursor = 0;
+    const TRAIL_COUNT = 40;
+    const baseFov = 52;
+
+    function buildStarmap() {
+      // sun
+      const sunGeo = new THREE.SphereGeometry(9, 32, 32);
+      const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff3d6 });
+      sun = new THREE.Mesh(sunGeo, sunMat);
+      starmapGroup.add(sun);
+      const sunLight = new THREE.PointLight(0xffe8b0, 3.5, 260);
+      sun.add(sunLight);
+      const glowGeo = new THREE.SphereGeometry(12, 24, 24);
+      const glowMat = new THREE.MeshBasicMaterial({ color: 0xffcf6b, transparent: true, opacity: 0.15 });
+      sun.add(new THREE.Mesh(glowGeo, glowMat));
+      sun.add(makeGlowSprite('#ffcf6b', 46, 0.85));
+
+      // colored nebula clouds for the star map (separate from cockpit nebula)
+      [0x2a0b3d, 0x0b2a3d, 0x123d1a].forEach((col, i) => {
+        const c = document.createElement('canvas'); c.width = 400; c.height = 400;
+        const ctx = c.getContext('2d');
+        const g = ctx.createRadialGradient(200, 200, 0, 200, 200, 200);
+        const hex = '#' + col.toString(16).padStart(6, '0');
+        g.addColorStop(0, hex + '55'); g.addColorStop(1, hex + '00');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 400, 400);
+        const tex = new THREE.CanvasTexture(c);
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(140, 110), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+        mesh.position.set(Math.cos(i * 2.4) * 90, Math.sin(i * 1.7) * 30, Math.sin(i * 2.4) * 90 - 20);
+        mesh.lookAt(0, 0, 0);
+        starmapGroup.add(mesh);
+      });
+
+      // background scenery planets (non-interactive, adds depth)
+      [{ r: 5, col: 0x3a2a55, pos: [-70, 18, -40] }, { r: 3.2, col: 0x1a4a4a, pos: [60, -10, -70] }].forEach(p => {
+        const geo = new THREE.SphereGeometry(p.r, 20, 20);
+        const mat = new THREE.MeshStandardMaterial({ color: p.col, roughness: 0.9, metalness: 0.1, emissive: p.col, emissiveIntensity: 0.12 });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(...p.pos);
+        starmapGroup.add(m);
+      });
+
+      // objective markers (diamonds)
+      OBJECTIVES.forEach(ob => {
+        const geo = new THREE.OctahedronGeometry(1.1, 0);
+        const mat = new THREE.MeshStandardMaterial({ color: 0x061014, emissive: 0x00f0ff, emissiveIntensity: 0.8, metalness: 0.3, roughness: 0.4 });
+        const m = new THREE.Mesh(geo, mat);
+        const [a, elevation] = ob.angle;
+        const r = ob.dist;
+        m.position.set(Math.cos(a) * r, Math.sin(elevation) * 14, Math.sin(a) * r);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.03, 8, 32), new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.5 }));
+        m.add(ring);
+        m.add(makeGlowSprite('#00f0ff', 7, 0.55));
+        m.userData = ob;
+        starmapGroup.add(m);
+        markers.push(m);
+      });
+
+      buildAsteroidField();
+      buildEngineTrail();
+      buildExplosionPool();
+
+      // ship (procedural fallback first, real GLB swapped in if it loads)
+      ship = new THREE.Group();
+      shipVisual = new THREE.Group();
+      ship.add(shipVisual);
+      buildFallbackShip(shipVisual);
+      ship.position.set(...shipSpawn.pos);
+      ship.rotation.order = 'YXZ';
+      ship.rotation.y = shipSpawn.yaw;
+      starmapGroup.add(ship);
+
+      if (window.THREE && THREE.GLTFLoader) {
+        try {
+          const loader = new THREE.GLTFLoader();
+          loader.load(SHIP_GLB_URL, (gltf) => {
+            shipVisual.clear();
+            const model = gltf.scene;
+            const box = new THREE.Box3().setFromObject(model);
+            const size = new THREE.Vector3(); box.getSize(size);
+            const scale = 3.2 / Math.max(size.x, size.y, size.z, 0.001);
+            model.scale.setScalar(scale);
+            model.rotation.y = Math.PI; // face -Z (ship forward)
+            model.traverse(o => { if (o.isMesh) { o.castShadow = false; } });
+            shipVisual.add(model);
+          }, undefined, () => { /* keep fallback ship, already built */ });
+
+          // drifting relic near the CODEX marker
+          const relicLoader = new THREE.GLTFLoader();
+          relicLoader.load(RELIC_GLB_URL, (gltf) => {
+            relic = gltf.scene;
+            relic.scale.setScalar(2.2);
+            const codex = markers.find(m => m.userData.code === 'CODEX');
+            const base = codex ? codex.position.clone() : new THREE.Vector3(20, 6, 0);
+            relic.position.copy(base).add(new THREE.Vector3(6, 3, 4));
+            starmapGroup.add(relic);
+          }, undefined, () => { buildFallbackRelic(); });
+        } catch (err) { buildFallbackRelic(); }
+      } else {
+        buildFallbackRelic();
+      }
+    }
+
+    function buildFallbackShip(target) {
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x11141d, metalness: 0.75, roughness: 0.3, emissive: 0x00f0ff, emissiveIntensity: 0.12 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x080a10, metalness: 0.6, roughness: 0.5 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: 0x061014, emissive: 0x39ff14, emissiveIntensity: 1.1 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x0a2530, metalness: 0.2, roughness: 0.1, emissive: 0x00f0ff, emissiveIntensity: 0.4, transparent: true, opacity: 0.85 });
+
+      // main fuselage
+      const body = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.6, 8), bodyMat);
+      body.rotation.x = -Math.PI / 2;
+      target.add(body);
+
+      // tapered tail section
+      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.32, 1.1, 8), darkMat);
+      tail.rotation.x = Math.PI / 2;
+      tail.position.z = 1.6;
+      target.add(tail);
+
+      // cockpit canopy
+      const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.6), glassMat);
+      canopy.rotation.x = Math.PI;
+      canopy.position.set(0, 0.22, -0.5);
+      target.add(canopy);
+
+      // wings with a raised spine + panel-line grooves (edge lines for a "greebled" look)
+      [-1, 1].forEach(side => {
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 0.85), bodyMat);
+        wing.position.set(side * 1.15, -0.02, 0.5);
+        wing.rotation.z = side * -0.08;
+        target.add(wing);
+        const spine = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.85), darkMat);
+        spine.position.set(side * 1.15, 0.05, 0.5);
+        target.add(spine);
+        const edges = new THREE.EdgesGeometry(wing.geometry);
+        wing.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x2a323f })));
+
+        // wingtip running light — blinks red/green like a real aircraft, classic game-feel detail
+        const tipLight = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8),
+          new THREE.MeshStandardMaterial({ color: 0x000000, emissive: side < 0 ? 0xff3b3b : 0x39ff14, emissiveIntensity: 1.4 }));
+        tipLight.position.set(side * 1.8, -0.02, 0.5);
+        tipLight.userData.blink = true;
+        target.add(tipLight);
+      });
+
+      // twin engines with bright glow core + nozzle glow sprite
+      [-1, 1].forEach(s => {
+        const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.55, 10), darkMat);
+        engine.rotation.x = Math.PI / 2;
+        engine.position.set(s * 0.75, -0.05, 1.05);
+        target.add(engine);
+        const core = new THREE.Mesh(new THREE.CircleGeometry(0.13, 10), accentMat);
+        core.position.set(s * 0.75, -0.05, 1.33);
+        target.add(core);
+        core.add(makeGlowSprite('#39ff14', 1.1, 0.8));
+      });
+
+      // small hull panel-line details via edges on the body
+      const bodyEdges = new THREE.EdgesGeometry(new THREE.ConeGeometry(0.5, 2.6, 8));
+      const bodyLines = new THREE.LineSegments(bodyEdges, new THREE.LineBasicMaterial({ color: 0x2a323f, transparent: true, opacity: 0.5 }));
+      bodyLines.rotation.copy(body.rotation);
+      target.add(bodyLines);
+    }
+    function buildFallbackRelic() {
+      relic = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(1.6, 0),
+        new THREE.MeshStandardMaterial({ color: 0x0a0d12, wireframe: true, emissive: 0x39ff14, emissiveIntensity: 0.6 })
+      );
+      const codex = markers.find(m => m.userData.code === 'CODEX');
+      const base = codex ? codex.position.clone() : new THREE.Vector3(20, 6, 0);
+      relic.position.copy(base).add(new THREE.Vector3(6, 3, 4));
+      starmapGroup.add(relic);
+    }
+
+    /* scattered rock field — flyable obstacles with real collision feedback */
+    function buildAsteroidField() {
+      const count = isMobile ? 0 : 42;
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x2b2d33, roughness: 0.95, metalness: 0.15, emissive: 0x0a0d12, emissiveIntensity: 0.2 });
+      for (let i = 0; i < count; i++) {
+        const radius = 0.8 + Math.random() * 2.4;
+        const geo = makeAsteroidGeometry(radius);
+        const mesh = new THREE.Mesh(geo, rockMat);
+        // scatter in a shell around the play area, avoiding the immediate spawn corridor
+        const a = Math.random() * Math.PI * 2;
+        const r = 22 + Math.random() * 62;
+        const y = (Math.random() - 0.5) * 34;
+        mesh.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
+        mesh.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+        mesh.userData = { radius, spin: (Math.random() - 0.5) * 0.4 };
+        starmapGroup.add(mesh);
+        asteroids.push(mesh);
+      }
+    }
+
+    function buildEngineTrail() {
+      const geo = new THREE.PlaneGeometry(0.18, 0.18);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      for (let i = 0; i < TRAIL_COUNT; i++) {
+        const p = new THREE.Mesh(geo, mat.clone());
+        p.visible = false;
+        starmapGroup.add(p);
+        trailParticles.push({ mesh: p, life: 0 });
+      }
+    }
+    function emitTrail(pos) {
+      const slot = trailParticles[trailCursor];
+      trailCursor = (trailCursor + 1) % TRAIL_COUNT;
+      slot.mesh.position.copy(pos);
+      slot.mesh.visible = true;
+      slot.life = 1;
+      slot.mesh.material.opacity = 0.7;
+    }
+    function updateTrail(dt, camera) {
+      trailParticles.forEach(p => {
+        if (p.life <= 0) return;
+        p.life -= dt * 1.6;
+        p.mesh.material.opacity = Math.max(0, p.life * 0.6);
+        p.mesh.scale.setScalar(1 + (1 - p.life) * 3);
+        if (p.life <= 0) p.mesh.visible = false;
+        else p.mesh.quaternion.copy(camera.quaternion);
+      });
+    }
+
+    /* explosion "blast" pool — reused across every asteroid impact */
+    const EXPLOSION_COUNT = 60; // shared shard budget across all simultaneous blasts
+    let explosionShards = [];
+    function buildExplosionPool() {
+      const geo = new THREE.PlaneGeometry(0.22, 0.22);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xffa63c, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      for (let i = 0; i < EXPLOSION_COUNT; i++) {
+        const p = new THREE.Mesh(geo, mat.clone());
+        p.visible = false;
+        starmapGroup.add(p);
+        explosionShards.push({ mesh: p, life: 0, vel: new THREE.Vector3() });
+      }
+    }
+    let explosionCursor = 0;
+    function spawnExplosion(position, colorHex) {
+      for (let i = 0; i < 14; i++) {
+        const slot = explosionShards[explosionCursor];
+        explosionCursor = (explosionCursor + 1) % EXPLOSION_COUNT;
+        slot.mesh.position.copy(position);
+        slot.mesh.material.color.set(colorHex || (i % 2 ? 0xff6a3c : 0xffcf6b));
+        slot.mesh.material.opacity = 1;
+        slot.mesh.scale.setScalar(0.4);
+        slot.vel.set((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+        slot.life = 1;
+        slot.mesh.visible = true;
+      }
+      flashImpact();
+    }
+    function updateExplosions(dt, camera) {
+      explosionShards.forEach(p => {
+        if (p.life <= 0) return;
+        p.life -= dt * 1.3;
+        p.mesh.position.addScaledVector(p.vel, dt);
+        p.vel.multiplyScalar(0.92);
+        p.mesh.material.opacity = Math.max(0, p.life);
+        p.mesh.scale.setScalar(0.4 + (1 - p.life) * 2.2);
+        if (p.life <= 0) p.mesh.visible = false;
+        else p.mesh.quaternion.copy(camera.quaternion);
+      });
+    }
+    function flashImpact() {
+      const el = document.getElementById('impact-flash');
+      if (!el) return;
+      el.classList.add('hit');
+      setTimeout(() => el.classList.remove('hit'), 90);
+    }
+
+    /* ---------------- flight input ---------------- */
+    const ARROW_KEYS = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
+    window.addEventListener('keydown', (e) => {
+      if (mode !== 'starmap' || flightPaused) return;
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+      const k = e.key.toLowerCase();
+      if (ARROW_KEYS.includes(k)) e.preventDefault(); // stop page scroll — arrows are flight controls here
+      keys[k] = true;
+      if (e.key === 'Tab') { e.preventDefault(); camView = (camView === 'chase') ? 'nose' : 'chase'; }
+      if (k === 'r') { resetShip(); }
+      if (k === 'e') { tryScan(); }
+    });
+    window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+    document.addEventListener('pointerdown', (e) => {
+      if (mode !== 'starmap' || flightPaused) return;
+      if (e.target.closest('#starmap-hud')) return;
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+    });
+    document.addEventListener('pointermove', (e) => {
+      if (mode !== 'starmap' || !dragging) return;
+      dragDX += (e.clientX - lastX);
+      dragDY += (e.clientY - lastY);
+      lastX = e.clientX; lastY = e.clientY;
+    });
+    document.addEventListener('pointerup', () => { dragging = false; });
+    document.addEventListener('wheel', (e) => {
+      if (mode !== 'starmap') return;
+      e.preventDefault(); // wheel is ship zoom while flying, not page scroll
+      camDist = Math.min(20, Math.max(4, camDist + e.deltaY * 0.01));
+    }, { passive: false });
+
+    function resetShip() {
+      ship.position.set(...shipSpawn.pos);
+      shipState.yaw = shipSpawn.yaw; shipState.pitch = 0; shipState.roll = 0; shipState.speed = 0;
+      hull = 100; hitCooldown = 0; shakeTime = 0;
+    }
+
+    function tryScan() {
+      if (!nearMarker) return;
+      markVisited(nearMarker.userData.panel, nearMarker.userData.code);
+      flightPaused = true;
+      openPanel(nearMarker.userData.panel, consoleMeshes[nearMarker.userData.panel] ? nearMarker.userData.panel : null);
+    }
+
+    function markVisited(panelKey, code) {
+      const ob = OBJECTIVES.find(o => o.panel === panelKey || o.code === code);
+      if (!ob || visited.has(ob.code)) { renderObjectives(); return; }
+      visited.add(ob.code);
+      renderObjectives();
+    }
+
+    function renderObjectives() {
+      const list = document.getElementById('ob-list');
+      const count = document.getElementById('ob-count');
+      const hudCount = document.getElementById('hud-progress-count');
+      if (hudCount) hudCount.textContent = `${visited.size}/${OBJECTIVES.length} SIGNALS FOUND`;
+      if (!list) return;
+      list.innerHTML = OBJECTIVES.map(o => {
+        const done = visited.has(o.code);
+        return `<div class="ob-row ${done ? 'done' : ''}"><div class="ob-check"></div><div class="ob-code">${o.code}</div><div class="ob-label">${o.label}</div></div>`;
+      }).join('');
+      count.textContent = `${visited.size}/${OBJECTIVES.length}`;
+    }
+
+    function updateStarmap(dt) {
+      if (!ship) return;
+      if (flightPaused) { return; }
+
+      const turnSpeed = 1.6, pitchSpeed = 1.3, dragSens = 0.0022;
+      if (keys['a'] || keys['arrowleft']) shipState.yaw += turnSpeed * dt;
+      if (keys['d'] || keys['arrowright']) shipState.yaw -= turnSpeed * dt;
+      if (keys['arrowup']) shipState.pitch += pitchSpeed * dt;
+      if (keys['arrowdown']) shipState.pitch -= pitchSpeed * dt;
+      shipState.yaw -= dragDX * dragSens;
+      shipState.pitch -= dragDY * dragSens;
+      shipState.pitch = Math.max(-1.1, Math.min(1.1, shipState.pitch));
+      dragDX = 0; dragDY = 0;
+
+      const boosting = !!keys['shift'];
+      const boost = boosting ? 2.2 : 1;
+      const accel = 14 * boost;
+      if (keys['w']) shipState.speed += accel * dt;
+      if (keys['s']) shipState.speed -= accel * dt * 1.3;
+      shipState.speed *= 0.985;
+      shipState.speed = Math.max(-8, Math.min(28 * boost, shipState.speed));
+
+      ship.rotation.y = shipState.yaw;
+      ship.rotation.x = shipState.pitch;
+      const turningLeft = keys['a'] || keys['arrowleft'], turningRight = keys['d'] || keys['arrowright'];
+      const targetRoll = turningLeft ? 0.4 : (turningRight ? -0.4 : 0);
+      shipState.roll += (targetRoll - shipState.roll) * 0.08;
+      shipVisual.rotation.z = shipState.roll;
+
+      const forward = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(shipState.pitch, shipState.yaw, 0, 'YXZ'));
+      ship.position.addScaledVector(forward, shipState.speed * dt);
+
+      // wingtip running lights — classic blink, cheap but reads as "detailed"
+      const blinkOn = Math.floor(performance.now() / 500) % 2 === 0;
+      shipVisual.traverse(o => { if (o.userData && o.userData.blink) o.visible = blinkOn; });
+
+      // engine exhaust trail — denser and brighter under boost
+      if (Math.abs(shipState.speed) > 2) {
+        const rate = boosting ? 2 : 5;
+        if (Math.floor(performance.now() / 16) % rate === 0) {
+          const emitPos = ship.position.clone().addScaledVector(forward, -1.1);
+          emitTrail(emitPos);
+        }
+      }
+      updateTrail(dt, camera);
+
+      // asteroid field: gentle spin + collision feedback — real "blast" on impact
+      hitCooldown = Math.max(0, hitCooldown - dt);
+      asteroids.forEach(a => {
+        if (!a.visible) return;
+        a.rotation.y += a.userData.spin * dt;
+        a.rotation.x += a.userData.spin * dt * 0.6;
+        if (hitCooldown <= 0) {
+          const d = a.position.distanceTo(ship.position);
+          const combined = a.userData.radius + 1.1;
+          if (d < combined) {
+            spawnExplosion(a.position);
+            a.visible = false;
+            const respawnDelay = 4000 + Math.random() * 3000;
+            setTimeout(() => {
+              const ang = Math.random() * Math.PI * 2, r = 22 + Math.random() * 62;
+              a.position.set(Math.cos(ang) * r, (Math.random() - 0.5) * 34, Math.sin(ang) * r);
+              a.visible = true;
+            }, respawnDelay);
+            const away = ship.position.clone().sub(a.position).normalize();
+            ship.position.addScaledVector(away, combined - d + 0.6);
+            shipState.speed *= 0.4;
+            hull = Math.max(15, hull - 12);
+            hitCooldown = 0.9;
+            shakeTime = 0.4;
+          }
+        }
+      });
+      updateExplosions(dt, camera);
+      hull = Math.min(100, hull + dt * 3); // slow passive regen — this is atmosphere, not a fail state
+
+      // camera (with boost FOV punch + impact shake)
+      const targetFov = boosting ? baseFov + 6 : baseFov;
+      camera.fov += (targetFov - camera.fov) * 0.08;
+      camera.updateProjectionMatrix();
+
+      let shakeOffset = new THREE.Vector3();
+      if (shakeTime > 0) {
+        shakeTime = Math.max(0, shakeTime - dt);
+        const mag = shakeTime * 0.5;
+        shakeOffset.set((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
+      }
+
+      if (camView === 'chase') {
+        const behind = forward.clone().multiplyScalar(-camDist);
+        const desired = ship.position.clone().add(behind).add(new THREE.Vector3(0, camDist * 0.28, 0)).add(shakeOffset);
+        camera.position.lerp(desired, 0.12);
+        camera.lookAt(ship.position.clone().addScaledVector(forward, 6));
+      } else {
+        const nosePos = ship.position.clone().addScaledVector(forward, 1.4).add(new THREE.Vector3(0, 0.25, 0)).add(shakeOffset);
+        camera.position.lerp(nosePos, 0.4);
+        camera.lookAt(ship.position.clone().addScaledVector(forward, 20));
+      }
+
+      // proximity scan — press E within range, or fly straight into it to auto-open
+      let closest = null, closestDist = Infinity;
+      markers.forEach(m => {
+        m.rotation.y += dt * 0.4;
+        const d = m.position.distanceTo(ship.position);
+        if (d < closestDist) { closestDist = d; closest = m; }
+      });
+      const prompt = document.getElementById('scan-prompt');
+      if (closest && closestDist < 12 && !visited.has(closest.userData.code)) {
+        nearMarker = closest;
+        prompt.textContent = `IN RANGE · PRESS E TO SCAN — ${closest.userData.code}`;
+        prompt.classList.add('show');
+        if (closestDist < 3.2) { // flew right up to it — open it automatically, like hitting a checkpoint
+          tryScan();
+        }
+      } else {
+        nearMarker = null;
+        prompt.classList.remove('show');
+      }
+      markers.forEach(m => {
+        const done = visited.has(m.userData.code);
+        m.material.emissive.set(done ? 0x39ff14 : (m === nearMarker ? 0x39ff14 : 0x00f0ff));
+      });
+
+      if (sun) sun.rotation.y += dt * 0.02;
+      if (relic) relic.rotation.y += dt * 0.15;
+
+      updateStarmapHUD(closestDist);
+      drawMinimap(forward);
+    }
+
+    function updateStarmapHUD(nearestDist) {
+      const speedFill = document.getElementById('speed-fill');
+      const hullFill = document.getElementById('hull-fill');
+      const speedVal = document.getElementById('speed-val');
+      const hullVal = document.getElementById('hull-val');
+      if (!speedFill) return;
+      const speedPct = Math.max(0, Math.min(100, (shipState.speed / 28) * 100));
+      speedFill.style.width = speedPct + '%';
+      speedVal.textContent = Math.abs(shipState.speed).toFixed(0);
+      hullFill.style.width = hull + '%';
+      hullFill.style.background = hull < 35 ? 'var(--cyan)' : 'var(--green)';
+      hullVal.textContent = Math.round(hull) + '%';
+    }
+
+    function drawMinimap(forward) {
+      const canvas = document.getElementById('minimap');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = 'rgba(9,11,17,0.55)';
+      ctx.beginPath(); ctx.arc(cx, cy, cx - 2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(123,132,148,0.35)';
+      ctx.beginPath(); ctx.arc(cx, cy, cx - 2, 0, Math.PI * 2); ctx.stroke();
+
+      const scale = (cx - 6) / 90; // world units to px, radar covers ~90 units
+      const heading = Math.atan2(forward.x, forward.z);
+
+      function project(worldPos) {
+        const dx = worldPos.x - ship.position.x;
+        const dz = worldPos.z - ship.position.z;
+        // rotate so ship's forward always points "up" on the radar
+        const rx = dx * Math.cos(-heading) - dz * Math.sin(-heading);
+        const rz = dx * Math.sin(-heading) + dz * Math.cos(-heading);
+        return { x: cx + rx * scale, y: cy - rz * scale };
+      }
+
+      // sun
+      const sp = project(new THREE.Vector3(0, 0, 0));
+      ctx.fillStyle = '#ffcf6b';
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 4, 0, Math.PI * 2); ctx.fill();
+
+      // markers
+      markers.forEach(m => {
+        const p = project(m.position);
+        const dist = Math.hypot(p.x - cx, p.y - cy);
+        if (dist > cx - 4) return;
+        ctx.fillStyle = visited.has(m.userData.code) ? '#39ff14' : '#00f0ff';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // ship (always centered, pointing up)
+      ctx.fillStyle = '#e9edf3';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 6); ctx.lineTo(cx - 4, cy + 5); ctx.lineTo(cx + 4, cy + 5);
+      ctx.closePath(); ctx.fill();
+    }
+
+    function enterStarmap() {
+      if (isMobile || !scene) return;
+      mode = 'starmap';
+      closePanelsSilent();
+      document.getElementById('hero').classList.add('faded');
+      document.getElementById('hero').style.opacity = '0'; // override any leftover scroll-driven inline opacity
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('nav').style.display = 'none';
+      document.getElementById('starmap-hud').classList.add('active');
+      document.getElementById('intro-cover').style.opacity = '0';
+      document.body.classList.add('no-scroll');
+      cockpitGroup.visible = false;
+      starmapGroup.visible = true;
+      scene.fog = new THREE.FogExp2(0x030307, 0.006);
+      flightPaused = false;
+      resetShip();
+      renderObjectives();
+      document.body.style.cursor = 'default';
+      showBriefing();
+    }
+    function showBriefing() {
+      const b = document.getElementById('starmap-briefing');
+      if (!b) return;
+      b.classList.add('show');
+      const dismiss = () => { b.classList.remove('show'); window.removeEventListener('keydown', dismiss); };
+      setTimeout(() => window.addEventListener('keydown', dismiss, { once: true }), 50);
+      setTimeout(dismiss, 5000);
+    }
+    function exitStarmap() {
+      mode = 'cockpit';
+      flightPaused = false;
+      document.getElementById('starmap-hud').classList.remove('active');
+      document.getElementById('nav').style.display = '';
+      document.getElementById('hud').classList.remove('hidden');
+      document.body.classList.remove('no-scroll');
+      window.scrollTo(0, window.innerHeight); // land back in the revealed cockpit, not the hero screen
+      cockpitGroup.visible = true;
+      starmapGroup.visible = false;
+      scene.fog = new THREE.FogExp2(0x030307, 0.045);
+      if (camera) { camera.fov = baseFov; camera.updateProjectionMatrix(); }
+      returnToCockpit();
+      closePanelsSilent();
+    }
+    function closePanelsSilent() {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+      document.getElementById('dim-layer').classList.remove('on');
+    }
+
+    document.getElementById('enter-starmap').addEventListener('click', enterStarmap);
+    document.getElementById('nav-starmap').addEventListener('click', enterStarmap);
+    document.getElementById('exit-starmap').addEventListener('click', exitStarmap);
+
+    /* ---------------- camera control (cockpit mode) ---------------- */
+    window.addEventListener('mousemove', (e) => {
+      if (mode !== 'cockpit') return;
+      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+      mouseLookX = nx * 0.18;
+      mouseLookY = ny * 0.09;
+      if (mouse) { mouse.x = nx; mouse.y = -ny; }
+    });
+
+    const consolePositions = {
+      identity: { pos: [-1.3, 1.2, 0.75], look: [-1.85, 1.05, -0.35] },
+      projects: { pos: [0, 1.2, 0.15], look: [0, 1.0, -0.95] },
+      neural: { pos: [1.3, 1.2, 0.75], look: [1.85, 1.05, -0.35] },
+      terminal: { pos: [0, 0.85, 1.05], look: [0, 0.32, 0.32] },
+      default: { pos: [0, 1.55, 4.2], look: [0, 1.4, 0] }
+    };
+
+    let activeConsole = null;
+    function focusConsole(key) {
+      activeConsole = key;
+      const c = consolePositions[key] || consolePositions.default;
+      camTargetPos.set(...c.pos);
+      camTargetLook.set(...c.look);
+    }
+    function returnToCockpit() {
+      activeConsole = null;
+      camTargetPos.copy(camBasePos);
+      camTargetLook.copy(camBaseLook);
+    }
+
+    let lastFrame = performance.now();
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - lastFrame) / 1000);
+      lastFrame = now;
+      const t = now * 0.001;
+
+      if (core) {
+        core.rotation.y += 0.004;
+        core.rotation.x = Math.sin(t * 0.3) * 0.08;
+        core.children[2].rotation.z += 0.006;
+      }
+      if (starField && !reduceMotion) starField.rotation.y += 0.00008;
+      if (window.__dust && !reduceMotion) window.__dust.rotation.y += 0.0003;
+
+      if (mode === 'starmap') {
+        updateStarmap(dt);
+      } else {
+        // lerp camera (cockpit mode)
+        camera.position.lerp(camTargetPos, reduceMotion ? 1 : 0.06);
+        const desiredLook = camTargetLook.clone();
+        if (!activeConsole && !reduceMotion) {
+          desiredLook.x += mouseLookX;
+          desiredLook.y += -mouseLookY * 0.5;
+        }
+        window.__curLook = window.__curLook || desiredLook.clone();
+        window.__curLook.lerp(desiredLook, reduceMotion ? 1 : 0.08);
+        camera.lookAt(window.__curLook);
+
+        updateHotspotLabels();
+        updateHover();
+
+        // scroll-driven reveal: black hero screen at top, camera dollies into the
+        // cockpit as you scroll down (not just a cross-fade)
+        const introCover = document.getElementById('intro-cover');
+        if (introCover) {
+          const progress = Math.max(0, Math.min(1, window.scrollY / window.innerHeight));
+          introCover.style.opacity = 1 - progress;
+          const panelOpen = !!document.querySelector('.panel.open');
+          const heroFade = panelOpen ? 1 : Math.max(0, Math.min(1, (progress - 0.45) * 2.2));
+          document.getElementById('hero').style.opacity = 1 - heroFade;
+          if (!activeConsole) {
+            const eased = progress * progress * (3 - 2 * progress); // smoothstep
+            camTargetPos.lerpVectors(introDollyFar, camBasePos, eased);
+          }
+        }
+
+        // console indicator lights — cheap blink for a "systems live" feel
+        if (Math.floor(t * 2) % 5 === 0) {
+          const blinkOn = Math.floor(t * 4) % 2 === 0;
+          cockpitGroup.traverse(o => { if (o.userData && o.userData.blink) o.visible = blinkOn; });
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function updateHotspotLabels() {
+      const map = { identity: 'label-left', projects: 'label-center', neural: 'label-right', terminal: 'label-terminal' };
+      for (const key in consoleMeshes) {
+        const mesh = consoleMeshes[key];
+        const el = document.getElementById(map[key]);
+        if (!el) continue;
+        const v = mesh.getWorldPosition(new THREE.Vector3()).project(camera);
+        if (v.z > 1 || activeConsole || mode !== 'cockpit' || !cockpitVisible()) { el.classList.remove('visible'); continue; }
+        const x = (v.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-v.y * 0.5 + 0.5) * window.innerHeight;
+        el.style.left = x + 'px'; el.style.top = y + 'px';
+        el.classList.add('visible');
+      }
+    }
+
+    function updateHover() {
+      hoverables.forEach(h => { if (h.userData.baseIntensity === undefined) h.userData.baseIntensity = h.material.emissiveIntensity; });
+      if (!raycaster || activeConsole || mode !== 'cockpit' || !cockpitVisible()) { hoverables.forEach(h => h.material.emissiveIntensity = h.userData.baseIntensity); document.body.style.cursor = 'default'; return; }
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(hoverables);
+      hoverables.forEach(h => h.material.emissiveIntensity = h.userData.baseIntensity);
+      if (hits.length) {
+        hits[0].object.material.emissiveIntensity = hits[0].object.userData.baseIntensity + 0.6;
+        document.body.style.cursor = 'pointer';
+      } else {
+        document.body.style.cursor = 'default';
+      }
+    }
+
+    function cockpitVisible() { return window.scrollY > window.innerHeight * 0.3; }
+
+    window.addEventListener('click', (e) => {
+      if (!raycaster || isMobile || mode !== 'cockpit' || !cockpitVisible()) return;
+      if (e.target.closest('#panels') || e.target.closest('#terminal') || e.target.closest('#nav')) return;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(hoverables);
+      if (hits.length) {
+        const found = Object.entries(consoleMeshes).find(([k, m]) => m === hits[0].object);
+        if (found) openPanel(found[0] === 'terminal' ? null : found[0], found[0]);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (!camera) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* ================================================================
+       PANEL / UI LOGIC
+       ================================================================ */
+    function openPanel(panelName, consoleKey) {
+      if (consoleKey === 'terminal') { openTerminal(); return; }
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+      document.getElementById('hero').classList.add('faded');
+      document.getElementById('dim-layer').classList.add('on');
+      if (panelName) {
+        const p = document.querySelector(`.panel[data-panel="${panelName}"]`);
+        if (p) p.classList.add('open');
+      }
+      document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.open === panelName));
+      if (consoleKey) focusConsole(consoleKey);
+    }
+    function closePanels() {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+      document.getElementById('dim-layer').classList.remove('on');
+      document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
+      if (mode === 'starmap') { flightPaused = false; return; }
+      document.getElementById('hero').classList.remove('faded');
+      returnToCockpit();
+    }
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closePanels));
+    document.getElementById('viewport-frame').addEventListener('click', () => { }); // no-op, keep clicks passing through
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanels(); });
+
+    document.querySelectorAll('#nav button[data-open], .m-card').forEach(b => {
+      b.addEventListener('click', () => {
+        const key = b.dataset.open;
+        if (!key) return;
+        openPanel(key, consoleMeshes[key] ? key : null);
+        markVisited(key);
+      });
+    });
+
+    /* ---------------- populate dynamic content ---------------- */
+    function initContent() {
+      // manifest / resume
+      document.getElementById('manifest-btn').addEventListener('click', () => {
+        const status = document.getElementById('manifest-status');
+        status.textContent = 'PREPARING FILE...';
+        setTimeout(() => {
+          if (CONFIG.resumeUrl) {
+            status.textContent = 'READY';
+            window.open(CONFIG.resumeUrl, '_blank');
+          } else {
+            status.textContent = 'No resume linked yet — add CONFIG.resumeUrl in the source.';
+          }
+        }, 900);
+      });
+
+      // radar blips + target list
+      const blipsG = document.getElementById('radar-blips');
+      const listEl = document.getElementById('target-list');
+      const angleStep = (Math.PI * 2) / Math.max(CONFIG.projects.length, 1);
+      CONFIG.projects.forEach((p, i) => {
+        const r = 60 + (i % 2) * 40;
+        const a = i * angleStep - Math.PI / 2;
+        const x = 150 + Math.cos(a) * r;
+        const y = 150 + Math.sin(a) * r;
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'blip');
+        g.innerHTML = `<circle cx="${x}" cy="${y}" r="4"></circle><text x="${x + 10}" y="${y + 3}">TARGET ${p.id}</text>`;
+        g.addEventListener('click', () => openProject(p.id));
+        blipsG.appendChild(g);
+
+        const row = document.createElement('div');
+        row.className = 'target-row';
+        row.innerHTML = `<span class="t-id">TARGET ${p.id}</span><span class="t-name">${p.name}</span><span class="t-cat">${p.category}</span>`;
+        row.addEventListener('click', () => openProject(p.id));
+        listEl.appendChild(row);
+      });
+
+      document.getElementById('back-to-projects').addEventListener('click', (e) => {
+        e.preventDefault(); openPanel('projects', 'projects');
+      });
+
+      // neural nodes
+      const nodeGrid = document.getElementById('node-grid');
+      const nodeDetail = document.getElementById('node-detail');
+      Object.keys(CONFIG.nodes).forEach(key => {
+        const el = document.createElement('div');
+        el.className = 'node'; el.textContent = key;
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+          el.classList.add('active');
+          nodeDetail.classList.add('show');
+          nodeDetail.innerHTML = `<div class="eyebrow">${key}</div>` + CONFIG.nodes[key].map(t =>
+            `<div class="tech-row"><span>${t}</span><span>related system</span></div>`).join('');
+        });
+        nodeGrid.appendChild(el);
+      });
+
+      // education
+      const educationList = document.getElementById('education-list');
+      CONFIG.education.forEach(ed => {
+        const row = document.createElement('div'); row.className = 'log-row';
+        row.innerHTML = `<div class="yr">${ed.year}</div><div><h4>${ed.degree}</h4><div class="role">${ed.school}</div><p>${ed.detail}</p></div>`;
+        educationList.appendChild(row);
+      });
+
+      // journey
+      const journeyList = document.getElementById('journey-list');
+      CONFIG.journey.forEach(j => {
+        const row = document.createElement('div'); row.className = 'log-row';
+        row.innerHTML = `<div class="yr">${j.year}</div><div><h4>${j.role}</h4><div class="role">${j.project}</div><p>${j.detail}</p></div>`;
+        journeyList.appendChild(row);
+      });
+
+      // mission
+      const missionList = document.getElementById('mission-list');
+      CONFIG.focus.forEach(f => {
+        const row = document.createElement('div'); row.className = 'mission-item';
+        row.innerHTML = `<div class="ind"></div><span>${f}</span>`;
+        missionList.appendChild(row);
+      });
+
+      // contact
+      const linkList = document.getElementById('link-list');
+      const links = [
+        { label: 'EMAIL', val: CONFIG.contact.email, href: `mailto:${CONFIG.contact.email}` },
+        { label: 'GITHUB', val: CONFIG.contact.github.replace('https://', ''), href: CONFIG.contact.github },
+        { label: 'LINKEDIN', val: CONFIG.contact.linkedin.replace('https://', ''), href: CONFIG.contact.linkedin }
+      ];
+      links.forEach(l => {
+        const a = document.createElement('a'); a.className = 'link-row'; a.href = l.href; a.target = '_blank';
+        a.innerHTML = `<span class="l-val">${l.val}</span><span class="l-label">${l.label}</span>`;
+        linkList.appendChild(a);
+      });
+      document.getElementById('open-channel').href = `mailto:${CONFIG.contact.email}`;
+
+      // real contact form — posts to FormSubmit.co (no signup needed, unlike Formspree;
+      // just click the confirmation link FormSubmit emails you the first time it's used)
+      const cfForm = document.getElementById('contact-form');
+      const cfStatus = document.getElementById('cf-status');
+      const cfSubmit = document.getElementById('cf-submit');
+      cfForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        cfSubmit.disabled = true;
+        cfStatus.className = ''; cfStatus.textContent = 'TRANSMITTING...';
+        try {
+          const res = await fetch(`https://formsubmit.co/ajax/${CONFIG.contact.email}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+              name: document.getElementById('cf-name').value,
+              email: document.getElementById('cf-email').value,
+              message: document.getElementById('cf-message').value,
+              _subject: 'New message from NAUTILUS-X'
+            })
+          });
+          if (!res.ok) throw new Error('bad response');
+          cfStatus.className = 'ok';
+          cfStatus.textContent = 'MESSAGE RECEIVED — signal sent successfully.';
+          cfForm.reset();
+        } catch (err) {
+          cfStatus.className = 'err';
+          cfStatus.textContent = `TRANSMISSION FAILED — email ${CONFIG.contact.email} directly instead.`;
+        }
+        cfSubmit.disabled = false;
+      });
+
+      initTypography();
+    }
+
+    function openProject(id) {
+      const p = CONFIG.projects.find(x => x.id === id);
+      if (!p) return;
+      const body = document.getElementById('project-detail-body');
+      body.innerHTML = `
+    <div class="eyebrow">TARGET ${p.id}</div>
+    <div class="panel-title">${p.name}</div>
+    <div class="panel-sub">${p.category} · ${p.year}</div>
+    <div class="case-cover"><img src="${p.image || ''}" alt="${p.name}" onerror="this.style.display='none'"><div class="core-mark">${p.category}</div></div>
+    <div class="case-meta">
+      <div>ROLE<b>${p.role}</b></div>
+      <div>YEAR<b>${p.year}</b></div>
+      <div>TECHNOLOGIES<b>${p.tech.join(', ')}</b></div>
+    </div>
+    <div class="case-section"><p>${p.description}</p></div>
+    <div class="case-section"><h4>THE CHALLENGE</h4><p>${p.challenge}</p></div>
+    <div class="case-section"><h4>THE APPROACH</h4><p>${p.approach}</p></div>
+    <div class="case-section"><h4>THE BUILD</h4><p>${p.build}</p></div>
+    <div class="case-section"><h4>THE RESULT</h4><p>${p.result}</p></div>
+  `;
+      document.querySelectorAll('.panel').forEach(pn => pn.classList.remove('open'));
+      document.querySelector('.panel[data-panel="project-detail"]').classList.add('open');
+      document.getElementById('dim-layer').classList.add('on');
+      document.getElementById('hero').classList.add('faded');
+      focusConsole('projects');
+    }
+
+    /* ---------------- interactive typography experiment ---------------- */
+    const typeWords = [
+      { word: 'BUILD', note: 'assembles from scattered fragments', behavior: 'assemble' },
+      { word: 'CREATE', note: 'letters shift dynamically on hover', behavior: 'shift' },
+      { word: 'THINK', note: 'letters drift subtly around each other', behavior: 'orbit' },
+      { word: 'AUTOMATE', note: 'letters connect into a single line', behavior: 'connect' },
+      { word: 'EXPLORE', note: 'letters respond to cursor position', behavior: 'follow' },
+    ];
+    function initTypography() {
+      const tabs = document.getElementById('exp-tabs');
+      const stage = document.getElementById('exp-stage');
+      const note = document.getElementById('exp-note');
+      typeWords.forEach((w, i) => {
+        const tab = document.createElement('button');
+        tab.className = 'exp-tab' + (i === 0 ? ' active' : '');
+        tab.textContent = w.word;
+        tab.addEventListener('click', () => showWord(i));
+        tabs.appendChild(tab);
+      });
+      function showWord(i) {
+        document.querySelectorAll('.exp-tab').forEach((t, idx) => t.classList.toggle('active', idx === i));
+        const w = typeWords[i];
+        note.textContent = `${w.word} · ${w.note}`;
+        stage.innerHTML = '';
+        const el = document.createElement('div');
+        el.className = 'type-word';
+        [...w.word].forEach((ch, ci) => {
+          const s = document.createElement('span'); s.textContent = ch;
+          el.appendChild(s);
+        });
+        stage.appendChild(el);
+        applyBehavior(el, w.behavior);
+      }
+      function applyBehavior(el, behavior) {
+        const spans = el.querySelectorAll('span');
+        if (behavior === 'assemble') {
+          spans.forEach((s, i) => {
+            s.style.transform = `translate(${(Math.random() - 0.5) * 140}px, ${(Math.random() - 0.5) * 80}px) rotate(${(Math.random() - 0.5) * 60}deg)`;
+            s.style.opacity = '0.15';
+          });
+          el.addEventListener('mouseenter', () => spans.forEach(s => { s.style.transform = 'translate(0,0) rotate(0)'; s.style.opacity = '1'; }));
+          el.addEventListener('mouseleave', () => spans.forEach((s, i) => {
+            s.style.transform = `translate(${(Math.random() - 0.5) * 140}px, ${(Math.random() - 0.5) * 80}px) rotate(${(Math.random() - 0.5) * 60}deg)`;
+            s.style.opacity = '0.15';
+          }));
+        } else if (behavior === 'shift') {
+          spans.forEach((s, i) => {
+            s.addEventListener('mouseenter', () => { s.style.transform = `translateY(${i % 2 ? -14 : 14}px)`; s.style.color = 'var(--cyan)'; });
+            s.addEventListener('mouseleave', () => { s.style.transform = 'translateY(0)'; s.style.color = ''; });
+          });
+        } else if (behavior === 'orbit') {
+          el.addEventListener('mousemove', (e) => {
+            const r = el.getBoundingClientRect();
+            spans.forEach((s, i) => {
+              const cx = (e.clientX - r.left) / r.width - 0.5;
+              s.style.transform = `translateY(${Math.sin((i + cx * 4)) * 6}px)`;
+            });
+          });
+          el.addEventListener('mouseleave', () => spans.forEach(s => s.style.transform = 'translateY(0)'));
+        } else if (behavior === 'connect') {
+          el.style.position = 'relative';
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('style', 'position:absolute; inset:0; overflow:visible; pointer-events:none;');
+          el.appendChild(svg);
+          el.addEventListener('mouseenter', () => {
+            svg.innerHTML = '';
+            for (let i = 0; i < spans.length - 1; i++) {
+              const a = spans[i].getBoundingClientRect(), b = spans[i + 1].getBoundingClientRect(), r = el.getBoundingClientRect();
+              const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              line.setAttribute('x1', a.left - r.left + a.width / 2); line.setAttribute('y1', a.top - r.top + a.height / 2);
+              line.setAttribute('x2', b.left - r.left + b.width / 2); line.setAttribute('y2', b.top - r.top + b.height / 2);
+              line.setAttribute('stroke', 'var(--green)'); line.setAttribute('stroke-width', '1');
+              svg.appendChild(line);
+            }
+          });
+          el.addEventListener('mouseleave', () => svg.innerHTML = '');
+        } else if (behavior === 'follow') {
+          el.addEventListener('mousemove', (e) => {
+            const r = el.getBoundingClientRect();
+            spans.forEach((s, i) => {
+              const sr = s.getBoundingClientRect();
+              const dx = (e.clientX - (sr.left + sr.width / 2)) * -0.06;
+              s.style.transform = `translateX(${dx}px)`;
+              s.style.color = 'var(--cyan)';
+            });
+          });
+          el.addEventListener('mouseleave', () => spans.forEach(s => { s.style.transform = 'translateX(0)'; s.style.color = ''; }));
+        }
+      }
+      showWord(0);
+    }
+
+    /* ---------------- terminal ---------------- */
+    const term = document.getElementById('terminal');
+    const termLog = document.getElementById('term-log');
+    const termInput = document.getElementById('term-input');
+    function openTerminal() { term.classList.add('open'); if (mode === 'starmap') flightPaused = true; termInput.focus(); }
+    document.getElementById('terminal-tab').addEventListener('click', () => { term.classList.toggle('open'); if (mode === 'starmap') flightPaused = term.classList.contains('open'); termInput.focus(); });
+    document.getElementById('term-close').addEventListener('click', () => { term.classList.remove('open'); if (mode === 'starmap') flightPaused = false; });
+
+    const commands = {
+      help() { return 'COMMANDS: about, projects, skills, education, experiments, journey, mission, contact, resume, starmap, dock, clear'; },
+      about() { openPanel('identity', 'identity'); return 'Opening IDENTITY…'; },
+      projects() { openPanel('projects', 'projects'); return 'Opening MISSION CONTROL…'; },
+      skills() { openPanel('neural', 'neural'); return 'Opening NEURAL CORE…'; },
+      experiments() { openPanel('experiments', null); return 'Opening EXPERIMENT BAY…'; },
+      journey() { openPanel('journey', null); return 'Opening FLIGHT LOG…'; },
+      mission() { openPanel('mission', null); return 'Opening CURRENT MISSION…'; },
+      contact() { openPanel('contact', null); return 'Opening COMMUNICATION CHANNEL…'; },
+      resume() { document.getElementById('manifest-btn')?.click(); openPanel('identity', 'identity'); return 'PREPARING FILE...'; },
+      education() { openPanel('education', null); return 'Opening ACADEMY…'; },
+      starmap() { term.classList.remove('open'); enterStarmap(); return 'LAUNCHING — WASD to fly, E to scan a target.'; },
+      fly() { return commands.starmap(); },
+      launch() { return commands.starmap(); },
+      dock() { exitStarmap(); return 'DOCKED — welcome back to the bridge.'; },
+      clear() { termLog.innerHTML = ''; return null; }
+    };
+    termInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const raw = termInput.value.trim();
+      if (!raw) return;
+      const cmdLine = document.createElement('div'); cmdLine.className = 'cmd'; cmdLine.textContent = raw;
+      termLog.appendChild(cmdLine);
+      const fn = commands[raw.toLowerCase()];
+      const resp = fn ? fn() : `command not found: ${raw} — type "help"`;
+      if (resp) { const r = document.createElement('div'); r.className = 'resp'; r.textContent = resp; termLog.appendChild(r); }
+      termLog.scrollTop = termLog.scrollHeight;
+      termInput.value = '';
+    });
+
+    /* ================================================================
+       INIT
+       ================================================================ */
+    initContent();
+    renderObjectives();
+    if (!isMobile) {
+      initScene();
+      animate();
+    } else {
+      document.getElementById('engine-loading').style.display = 'none';
+    }
+  </script>
+</body>
+
+</html>
