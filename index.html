@@ -1403,8 +1403,10 @@
       }
 
       #hud,
-      #viewport-frame {
-        display: none;
+      #viewport-frame,
+      #hero,
+      #terminal-tab {
+        display: none !important;
       }
 
       #mobile-view {
@@ -1480,8 +1482,109 @@
 
       #panels .panel-inner {
         width: 94vw;
-        padding: 22px;
-        max-height: 90vh;
+        padding: 20px 16px;
+        max-height: 92vh;
+      }
+
+      /* Stack log rows (education / journey) on mobile */
+      .log-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .log-row .yr {
+        font-size: 11px;
+      }
+
+      /* Fix target rows in project list */
+      .target-row {
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 14px 6px;
+      }
+
+      .target-row .t-id {
+        width: auto;
+        font-size: 9.5px;
+      }
+
+      .target-row .t-name {
+        font-size: 14px;
+        width: 100%;
+        flex: none;
+      }
+
+      .target-row .t-cat {
+        font-size: 9px;
+      }
+
+      /* Contact panel responsive fixes */
+      .link-row .l-val {
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 58vw;
+      }
+
+      .transmit-block form {
+        max-width: 100%;
+      }
+
+      .channel-cta {
+        font-size: 10px;
+        padding: 12px 16px;
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Panel title scaling */
+      .panel-title {
+        font-size: clamp(20px, 5vw, 28px);
+      }
+
+      /* Case meta wrapping */
+      .case-meta {
+        gap: 16px;
+      }
+
+      /* Radar panel — hide the SVG on very small screens, list takes priority */
+      .radar-wrap {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      #radar-svg {
+        display: none;
+      }
+
+      /* Neural overview 2-col instead of 4 */
+      .neural-overview {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      /* Node grid single column */
+      .node-grid {
+        grid-template-columns: 1fr;
+      }
+
+      /* Identity grid portrait smaller */
+      .portrait {
+        max-height: 220px;
+      }
+
+      /* Hero statement padding */
+      #hero .statement {
+        max-width: 90vw;
+        padding: 0 12px;
+      }
+
+      /* Boot mark smaller */
+      #boot-skip {
+        bottom: 20px;
+        right: 16px;
+        font-size: 10px;
+        padding: 7px 12px;
       }
     }
 
@@ -2153,6 +2256,109 @@
         height: 66px;
       }
     }
+
+    /* ---- Extra small screens (≤480px) ---- */
+    @media (max-width:480px) {
+      #mobile-view {
+        padding: 64px 16px 100px;
+      }
+
+      #mobile-view h1 {
+        font-size: 28px;
+      }
+
+      #mobile-view .m-stmt {
+        font-size: 13px;
+      }
+
+      .m-section {
+        margin-top: 40px;
+      }
+
+      #panels .panel-inner {
+        width: 96vw;
+        padding: 16px 12px;
+        max-height: 94vh;
+      }
+
+      .panel-close {
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+      }
+
+      .panel-sub {
+        font-size: 10px;
+        margin-bottom: 22px;
+      }
+
+      /* Keep case-meta readable at narrow width */
+      .case-meta {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      /* Ensure exp-tabs wrap cleanly */
+      .exp-tabs {
+        gap: 6px;
+      }
+
+      .exp-tab {
+        font-size: 9.5px;
+        padding: 7px 12px;
+      }
+
+      /* Ensure tag rows stay within bounds */
+      .tag {
+        font-size: 9.5px;
+        padding: 5px 9px;
+      }
+
+      /* Fix identity grid portrait at very small sizes */
+      .identity-grid {
+        gap: 24px;
+      }
+
+      .portrait {
+        max-height: 180px;
+      }
+
+      /* Long contact links */
+      .link-row {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 14px 4px;
+      }
+
+      .link-row .l-val {
+        max-width: 100%;
+        font-size: 12px;
+      }
+
+      /* Mission items */
+      .mission-item span {
+        font-size: 13px;
+      }
+
+      /* Node cards */
+      .node-name {
+        font-size: 14px;
+      }
+
+      .node-desc {
+        font-size: 11px;
+      }
+    }
+
+    /* Ensure panels always remain scrollable — critical on short screens */
+    @media (max-height: 600px) and (max-width: 720px) {
+      #panels .panel-inner {
+        max-height: 96vh;
+        padding: 14px 12px;
+      }
+    }
   </style>
 </head>
 
@@ -2282,7 +2488,7 @@
       <div class="panel-inner">
         <button class="panel-close" data-close>✕</button>
 
-        ```
+
         <div class="eyebrow">LEFT CONSOLE · IDENTITY</div>
 
         <div class="panel-title">Muhammad Ali</div>
@@ -2343,7 +2549,6 @@
             <div class="manifest-status" id="manifest-status"></div>
           </div>
         </div>
-        ```
 
       </div>
     </div>
